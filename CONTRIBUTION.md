@@ -10,13 +10,13 @@
 
 ## 如何添加新算子
 
-1. 调研算子功能，撰写算子设计文档，参考[BANGC-OPS算子设计文档模板](docs/bangc-docs/BANGC-OPS-Operator-Design-Doc-Template.md)或[BANGPy-OPS算子设计文档模板](docs/bangpy-docs/BANGPy-OPS-Operator-Design-Doc-Template.md)，主要包括：
+1. 调研算子功能，撰写算子设计文档，参考[BANGC-OPS算子设计文档模板](docs/bangc-docs/BANGC-OPS-Operator-Design-Doc-Template.md)，主要包括：
     - 算子需求分析
     - 算子接口设计
     - 算子实现方案设计
 
-2. 算子代码开发，参考[BANGC-OPS算子开发流程](docs/bangc-docs/BANGC-OPS-Operator-Development-Process.md)或[BANGPy-OPS算子开发流程](docs/bangpy-docs/BANGPy-OPS-Operator-Development-Process.md)、[PULL REQUEST流程](./docs/Pull-Request.md)，主要包括：
-    - 算子设计文档提交 `PR`（Pull Requset），其中 BANGC 算子设计文档目录为`docs/bangc-docs/design_docs` ，BANGPy 算子设计文档目录为`docs/bangpy-docs/design_docs`
+2. 算子代码开发，参考[BANGC-OPS算子开发流程](docs/bangc-docs/BANGC-OPS-Operator-Development-Process.md)、[PULL REQUEST流程](./docs/Pull-Request.md)，主要包括：
+    - 算子设计文档提交 `PR`（Pull Requset），其中 BANGC 算子设计文档目录为`docs/bangc-docs/design_docs`
     - GTest 代码开发
     - 算子伪代码开发
     - 算子主体代码开发
@@ -31,24 +31,6 @@
 4. 算子代码、算子测试报告一起提交 `PR`
 
 ## 代码风格
-
-### Python 和 BANGPy 
-
-- 遵循 [PEP8](https://www.python.org/dev/peps/pep-0008/)
-
-- 采用 [Pylint](https://pypi.org/project/pylint/) 检查代码格式
-
-- 安装 Pylint
-
-    ```shell
-    pip install pylint  # install
-    ```
-
-- 手动检查代码格式
-
-    ```bash
-    python3 -m pylint ./bangpy-ops --rcfile=./bangpy-ops/utils/pylintrc
-    ```
 
 ### C++ 和 BANGC
 
