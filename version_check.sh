@@ -1,6 +1,6 @@
 #!/bin/bash
-# Test BANGC and BANGPy source version, used for CI test.
-# If you want to run specify operators, refer to bangc-ops and bangpy-ops README.md.
+# Test BANGC source version, used for CI test.
+# If you want to run specify operators, refer to README.md.
 # You need to run build.sh, before running this script.
 set -e
 
