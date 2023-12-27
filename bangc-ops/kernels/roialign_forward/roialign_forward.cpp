@@ -42,21 +42,6 @@ mluOpDestroyRoiAlignForwardDescriptor(mluOpRoiAlignForwardDescriptor_t desc) {
   return MLUOP_STATUS_SUCCESS;
 }
 
-mluOpStatus_t MLUOP_WIN_API mluOpSetRoiAlignForwardDescriptor(
-    mluOpRoiAlignForwardDescriptor_t desc, const int pooled_height,
-    const int pooled_width, const int sampling_ratio, const float spatial_scale,
-    const bool aligned) {
-  PARAM_CHECK("mluOpRoiAlignForward", desc != NULL);
-  CHECK_FUNC_RETURN(
-      cnnlSetRoiAlignDescriptor(desc, pooled_height, pooled_width,
-                                sampling_ratio, spatial_scale, aligned),
-      CNNL_STATUS_SUCCESS,
-      "[mluOpRoiAlignForward] Internal error accured in "
-      "mluOpSetRoiAlignForwardDescriptor.",
-      MLUOP_STATUS_INTERNAL_ERROR);
-  return MLUOP_STATUS_SUCCESS;
-}
-
 mluOpStatus_t MLUOP_WIN_API mluOpSetRoiAlignForwardDescriptor_v2(
     mluOpRoiAlignForwardDescriptor_t desc, const int pooled_height,
     const int pooled_width, const int sampling_ratio, const float spatial_scale,

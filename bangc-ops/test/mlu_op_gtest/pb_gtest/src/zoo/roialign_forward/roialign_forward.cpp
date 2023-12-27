@@ -64,15 +64,7 @@ void RoialignForwardExecutor::compute() {
   VLOG(4) << "call mluOpRoiAlignForward";
   interface_timer_.start();
 
-  if (verison == 0) {
-    VLOG(4) << "verison = " << verison;
-    mluOpSetRoiAlignForwardDescriptor(roialign_desc, pooled_height,
-                                      pooled_width, sampling_ratio,
-                                      spatial_scale, aligned);
-    MLUOP_CHECK(mluOpRoiAlignForward(handle_, roialign_desc, input_desc,
-                                     input_dev, input_rois_desc, input_rois_dev,
-                                     output_desc, output_dev));
-  } else {
+  {
     VLOG(4) << "verison = " << verison;
     mluOpSetRoiAlignForwardDescriptor_v2(roialign_desc, pooled_height,
                                          pooled_width, sampling_ratio,
