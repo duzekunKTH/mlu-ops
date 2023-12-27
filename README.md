@@ -1,131 +1,168 @@
-<div align="center">
-  <img src="./docs/MLU-OPS-LOGO.png"/>
+# Cambricon BANGC operators
 
-<div align="center">
-  <b>
-    <a href="https://www.cambricon.com/docs/sdk_1.15.0/cambricon_bang_c_ops_0.9.0/user_guide/index.html">
-      <font size="4"> 📖 MLU-OPS 用户手册</font>
-    </a>
-  </b>
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <b>
-    <a href="https://developer.cambricon.com/">
-      <font size="4"> 🌏 寒武纪开发者社区</font>
-    </a>
-  </b>
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <b>
-    <a href="https://sdk.cambricon.com/download?sdk_version=V1.15.0&component_name=Basis">
-      <font size="4"> 🛠️ 依赖组件获取</font>
-    </a>
-  </b>
-</div>
-  
-<div>&nbsp;</div>
+提供基于寒武纪人工智能单元（MLU）开发高性能算子、C 接口封装的示例代码。
 
-[![ci](https://github.com/Cambricon/mlu-ops/actions/workflows/ci.yaml/badge.svg)](https://github.com/Cambricon/mlu-ops/actions/workflows/ci.yaml)
-[![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/Cambricon/mlu-ops/blob/master/LICENSE)
-![python](https://img.shields.io/badge/python-3.8,_3.9,_3.10-yellow)
-![system](https://img.shields.io/badge/system-x86_Ubuntu18.04,_Ubuntu20.04,_Centos7.6,_Centos8.5,_Kylin10-cyan)
+## 编译 BANGC operators
+- 环境依赖准备
+环境准备参看[README.md](../README.md)。
 
-</div>
-
-## 简介
-MLU-OPS 提供基于寒武纪人工智能单元（MLU），使用 C 接口或者 Python 接口开发高性能算子的示例代码。
-MLU-OPS 旨在通过提供示例代码，供开发者参考使用，可用于开发自定义算子，实现对应模型的计算。
-
-MLU-OPS 提供了以下功能：
-- [算子精度标准](https://github.com/Cambricon/mlu-ops/blob/master/docs/MLU-OPS-Accuracy-Acceptance-Standard.md)
-- [算子性能标准](https://github.com/Cambricon/mlu-ops/blob/master/docs/MLU-OPS-Performance-Acceptance-Standard.md)
-- [Op List (高质量实现 BANG C 算子)](https://github.com/Cambricon/mlu-ops/blob/master/docs/bangc-docs/BANGC-OPS-OpList.md)
-- [CNNL基础算子使用](https://github.com/Cambricon/mlu-ops/blob/master/docs/MLU-OPS-How-To-Use-CNNL-API.md)
-- [测试模块 GTest](https://github.com/cambricon/mlu-ops/blob/master/docs/GTest-User-Guide-zh.md) 支持 [内存泄露测试](https://github.com/cambricon/mlu-ops/blob/master/docs/GTest-User-Guide-zh.md#6-%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E6%A3%80%E6%B5%8B)、[代码覆盖率测试](https://github.com/cambricon/mlu-ops/blob/master/docs/GTest-User-Guide-zh.md#7-%E4%BB%A3%E7%A0%81%E8%A6%86%E7%9B%96%E7%8E%87)
-- [Gen-case (运行时测例生成工具)](https://github.com/Cambricon/mlu-ops/blob/master/docs/Gencase-User-Guide-zh.md)
-- [Perf-Analyse (算子性能分析工具)](https://github.com/Cambricon/mlu-ops/tree/master/tools/perf_analyse#readme)
-
-## 依赖条件
-
-- 操作系统：
-  - 支持 x86_64 下 Ubuntu18.04、Ubuntu20.04、Centos7.6、Centos8.5、Kylin10
-- 寒武纪 MLU SDK：
-  - 编译和运行时依赖 CNToolkit v3.7.0 或更高版本，CNNL v1.21.1 或者更高版本
-- 寒武纪 MLU 驱动：
-  - 运行时依赖驱动 v5.10.15 或更高版本
-- 外部链接库：
-  - libxml2-dev、libprotobuf-dev<=3.8.0、protobuf-compiler<=3.8.0、llvm-6.0-dev
-- Python环境：
-  - 依赖Python-3.8.0版本
-
-
-## 依赖环境准备
-
-- 获取 MLU-OPS 代码
-
+- 在mlu-ops目录下，可以使用以下命令完成环境变量的设置。
   ```sh
-  git clone https://github.com/Cambricon/mlu-ops.git
   cd mlu-ops
-  git submodule update --init --recursive
+  mlu-ops$ source env.sh
   ```
 
-- 准备 CNToolkit、CNNL 环境
+- 编译所有算子
+  ```sh
+  cd mlu-ops/bangc-ops
+  bangc-ops$./build.sh
+  ```
+
+  编译成功后在 `bangc-ops/build/lib` 目录下生成算子库文件 `libmluops.so`，在 `bangc-ops/build/test` 目录下生成测试用的可执行文件 `mluop_gtest` 。
+
+- 编译指定算子
+
+  支持编译指定的一个或多个算子
 
   ```sh
-  wget https://sdk.cambricon.com/static/Basis/MLU370_X86_ubuntu18.04/cntoolkit_x.x.x-1.ubuntuxx.xx_amd64.deb
-  wget https://sdk.cambricon.com/static/Basis/MLU370_X86_ubuntu18.04/cnnl_x.x.x-1.ubuntuxx.xx_amd64.deb
-  sudo apt-get install ./cntoolkit-x.x.x_ubuntuxx.xx_amd64.deb
-  sudo apt-get update
-  sudo apt-get install cncc cnas cnbin cndrv cnrt cnrtc
-  sudo apt-get install ./cnnl_x.x.x-x.ubuntuxx.xx_amd64.deb
+  cd mlu-ops/bangc-ops
+  bangc-ops$./build.sh --filter="abs;expand" # '--filter'参数后接要编译的算子，构建系统会根据'kernel_depends.toml'文件描述的依赖自动编译依赖的算子
   ```
 
-- 准备 Python-3.8.0 环境
+  算子名指的是`bangc-ops/kernels`目录下面的文件夹名。
+
+  注意，该功能对算子开发者有一定要求：
+
+  - `kernels/`、`test/mlu_op_gtest/pb_gtest/src/zoo`、`test/mlu_op_gtest/api_gtest/src/gtest/`三个目录下的算子文件夹命名要完全一致
+  - 相关算子依赖需要更新[kernel_depends.toml](./kernel_depends.toml)文件，请严格按照字母顺序添加
+
+  当算子存在正反向，且在kernel下的同一个文件夹下实现时
+
+  - 文件结构
+  
+    `kernels/op_name`、`test/mlu_op_gtest/pb_gtest/src/zoo/op_name_forward(op_name_backward)`、`test/mlu_op_gtest/api_gtest/src/gtest/op_name_forward(op_name_backward)`
+
+  - 添加依赖
+  
+    在[kernel_depends.toml](./kernel_depends.toml)文件中的[bangc-ops.gtest]下添加依赖说明
+
+    ```sh
+    op_name_backward = ["op_name"]
+    op_name_forward = ["op_name"]
+    ```
+
+  - 编译方式
+
+    ```sh
+    cd mlu-ops/bangc-ops
+    bangc-ops$./build.sh --filter="op_name_forward(或op_name_backward)" 
+    ```
+
+- 多MLU平台架构编译
+
+  - 当不指定架构时，默认编译支持`MLU370`板卡的 `libmluops.so`，运行时动态选择`MLU370`
+
+  - 编译指定MLU板卡
+
+      ```sh
+      bangc-ops$./build.sh            # 编译多架构的版本，libmluops.so 体积较大，cncc使用多arch的cnfatbin封装
+      bangc-ops$./build.sh  --mlu370  # 编译 MLU370 板卡专用版本，cncc使用选项--bang-mlu-arch=mtp_372
+      bangc-ops$./build.sh  --mlu370 --filter="abs;expand"  # mlu370 下编译 abs 算子和 expand 算子
+      ```
+
+- kernel_depends.toml
+
+  TOML格式的配置文件（一种类似于INI文件的格式，但是具有JSON同等的表达能力，支持注释，对人类可读性更友好），记录`kernels/`目录下的算子编译依赖关系，需要算子开发者进行维护{op1}的依赖{dep\_op1},{dep\_op2}（维护直接的第一级依赖即可），确保`--filter={op1}`时，能正确编译。格式如下：
 
   ```sh
-  wget https://www.python.org/ftp/python/3.8.0/Python-3.8.0.tgz
-  tar -xvf Python-3.8.0.tgz
-  cd Python-3.8.0
-  make -j24 && make install
+  <op_name> = ["dep_op1", "dep_op2", ...]
   ```
 
-- 准备 BANGPy 环境
+- gen_symbol_visibility_map.py
 
-  获取 BANGPy 最新版发布包：(https://cair.cambricon.com/)
-  ```sh
-  pip3.8 install bangpy-x.x.x-py3-none-any.whl
-  ```
+  - `gen_symbol_visibility_map.py`脚本用于解析`mlu_op.h`头文件，获取函数名，生成`symbol_visibility.map`配置文件。
+    ```sh
+    MLUOP_ABI {
+	    global: op1_func;op2_func;
+	    local: *;
+    };
+    ```
+    global：表示符号是全局的（外部的）
+    local：表示符号是本地的，即对外不可见
+  - 执行build.sh编译时，将自动执行`gen_symbol_visibility_map.py`生成`symbol_visibility.map`配置文件。
+  - 在编译阶段依据`symbol_visibility.map`文件中global字段定义的符号表，将动态库`libmluops.so`中除global中定义的符号外其他符号定义为local。
 
-- 准备链接库环境
+- 命令行参数
 
-  ```sh
-  sudo apt-get update
-  sudo apt-get install protobuf-compiler libxml2-dev libprotobuf-dev llvm-6.0-dev
-  ```
-## 开发、编译及测试
+  可通过`./build.sh -h`或`./build.sh --help`，查看命令行参数
 
-当前 C 接口（`BANGC`）、 Python 接口（`BANGPy`）算子开发、编译及测试相互独立
-- `BANGC` 算子见 [BANGC-OPS 算子开发流程](docs/bangc-docs/BANGC-OPS-Operator-Development-Process.md)、[README.md](bangc-ops/README.md)
-- `BANGPy` 算子见 [BANGPy-OPS 算子开发流程](docs/bangpy-docs/BANGPy-OPS-Operator-Development-Process.md)、[README.md](bangpy-ops/README.md)
+  | 变量名                      | 默认值                             | 说明                                                   | 关联cmake选项               | 关联命令行参数                       |
+  | --------------------------- | ---------------------------------- | ------------------------------------------------------ | --------------------------- | ------------------------------------ |
+  | `BUILD_MODE`                | release                            | release/debug，编译模式                                | `CMAKE_BUILD_TYPE`          | -d<br />--debug                      |
+  | `NEUWARE_HOME`              | 用户声明，或`source ../env.sh`设置 | neuware路径，包含cnrt,cndrv                            | `NEUWARE_HOME`              |                                      |
+  | `MLUOP_BUILD_COVERAGE_TEST` | OFF                                | 代码覆盖率测试                                         | `MLUOP_BUILD_COVERAGE_TEST` | -c<br />--coverage                   |
+  | `MLUOP_BUILD_ASAN_CHECK`    | OFF                                | 开启ASAN内存检查工具                                   | `MLUOP_BUILD_ASAN_CHECK`    | --asan                               |
+  | `MLUOP_MLU_ARCH_LIST`       | `mtp_372`          | 目标mlu架构列表，分号分割的字符串，如"mtp_372" | `MLUOP_MLU_ARCH_LIST`       | --mlu370 |
+  | `MLUOP_BUILD_SPECIFIC_OP`   | 空                                 | 编译指定的算子                                         | `MLUOP_BUILD_SPECIFIC_OP`   | --filter                             |
+  | `BUILD_JOBS`   | 16                                 | 编译指定的线程数                                         | `BUILD_JOBS`   | -j<br />--jobs                             |
 
-更多内容见 docs 目录下文档。
+  
 
-## 获取关于 BANG 语言基础和开发相关工具介绍的文档
-可查看最新版 [开发者文档](https://developer.cambricon.com/index/document/index/classid/3.html)
-- [BANG C/C++ 编程指南](https://www.cambricon.com/docs/sdk_1.13.0/cntoolkit_3.5.2/programming_guide_1.5.0/index.html)
-- [BANG C Developer Guide](https://www.cambricon.com/docs/sdk_1.13.0/cntoolkit_3.5.2/cambricon_bang_c_4.5.1/index.html)
-- [CNNL Developer Guide](https://www.cambricon.com/docs/sdk_1.15.0/cambricon_cnnl_1.21.1/developer_guide/index.html)
-- [MLU 架构调优指南](https://www.cambricon.com/docs/sdk_1.13.0/cntoolkit_3.5.2/cntoolkit_tuning_0.4.1/index.html)
-- [CNRT Developer Guide](https://www.cambricon.com/docs/sdk_1.13.0/cntoolkit_3.5.2/cnrt_6.5.2/index.html)
-- [CNRTC Developer Guide](https://www.cambricon.com/docs/sdk_1.13.0/cntoolkit_3.5.2/cambricon_cnrtc_0.6.0/index.html)
-- [CNDrv Developer Guide](https://www.cambricon.com/docs/sdk_1.13.0/cntoolkit_3.5.2/cndrv_2.5.2/index.html)
-- [CNGDB Developer Guide](https://www.cambricon.com/docs/sdk_1.13.0/cntoolkit_3.5.2/cngdb_3.5.0/index.html)
-- [Libdevice Developer Guide](https://www.cambricon.com/docs/sdk_1.13.0/cntoolkit_3.5.2/libdevice_4.5.1/index.html)
+## 运行测试用例
 
+各算子的测试用例实现在 `bangc-ops/test/mlu_op_gtest/src/zoo/*/test_case` 目录下。可以用如下命令执行 abs 算子对应的测试：
+
+```bash
+mlu-ops$ cd bangc-ops/build/test/
+test$ ./mluop_gtest --gtest_filter=*abs*
+```
+
+## 新算子开发流程
+
+详情可以参考文档 [BANGC-OPS 算子开发流程.md](../docs/bangc-docs/BANGC-OPS-Operator-Development-Process.md)以及 docs 目录下的其它补充说明。
+
+1. 在`mlu-ops/bangc-ops/kernels/`路径下，创建算子文件夹，添加算子实现，可以参考现有的 abs 算子进行添加。
+2. 在`mlu-ops/bangc-ops/test/mlu_op_gtest/src/zoo`创建算子文件夹，添加测试代码。
+3. 在算子测试目录 `mlu-ops/bangc-ops/test/mlu_op_gtest/src/zoo/xxx` 下进一步创建子目录`test_case`，用于存放测试用例。
 
 ## 目录文件结构
 
-| 目录/文件                 | 描述                                    |
-| ------------------------ | -------------------------------------- |
-| [bangc-ops](bangc-ops)   | C 接口算子开发目录                        |
-| [bangpy-ops](bangpy-ops) | Python 接口算子开发目录                   |
-| [docker](docker)         | 存放 docker 打包脚本，提供 CI 构建环境。    |
-| [docs](docs)             | 算子开发、测试、精度验收的说明文档。         |
+| 目录/文件            | 描述                                                           |
+| -------------------- | -------------------------------------------------------------- |
+| [mlu_op.h](mlu_op.h) | 公共数据类型描述，以及 kernels 目录中的算子对外提供的 C 接口。 |
+| [core](core)         | 包含公共数据类型的操作、运行时管理、日志等公共实现。           |
+| [kernels](kernels)   | 算子代码实现，包含一元、二元算子模板供其他算子调用。           |
+| [test](test)         | 存放测试算子用的代码。                                         |
+
+## 常用环境变量
+
+简单环境变量可直接执行以下命令：
+
+```bash
+# 使能dump data
+bangc-ops$ source env_dumpdata_set.sh on
+# 关闭dump data
+bangc-ops$ source env_dumpdata_set.sh off
+```
+```bash
+# 使能gencase
+bangc-ops$ source env_gencase_set.sh on
+# 关闭gencase
+bangc-ops$ source env_gencase_set.sh off
+```
+
+|   |        环境变量        |                         功能说明                        |  使用方法 |               备注                    |
+|---|------------------------|---------------------------------------------------------|----|-----------------------------------------|
+| 1 | MLUOP_BUILD_GTEST  | 编译MLU-OPS的GTEST| ON时使能，其他情况不使能           | 在build脚本中默认设为ON     |
+| 2 | MLUOP_GTEST_DUMP_DATA  | 将MLU-OPS的GTEST的输入输出数据打印至文件中| ON: 保存 GTEST 测试过程中用到的输入输出数据             | 不使用此环境变量时需要unset环境变量     |
+| 3 | MLUOP_GEN_CASE         |运行前设置，设置gen_case工具功能等级 |0: 关闭 gen_case 模块功能;<br>1: 生成 prototxt，输入输出只保留 shape 等信息（GEN_CASE_DATA_REAL 将无效）;<br>2: 生成 prototxt,并保留输入真实值;<br>3: 不生成 prototxt,只在屏幕上打印输入输出的 shape 等信息;<br> 详情见: [Gencase-User-Guide-zh.md](docs/Gencase-User-Guide-zh.md)|   |
+| 4 | MLUOP_MIN_LOG_LEVEL    | 设置外部LOG()宏的最小打印级别，用来让外部用户屏蔽不需要的LOG|0: enable INFO/WARNING/ERROR/FATAL;<br>1: enable WARNING/ERROR/FATAL;<br>2: enable ERROR/FATAL;<br>3: enable FATAL |默认为0  |
+| 5 | MLUOP_MIN_VLOG_LEVEL   |设置内部VLOG()宏的最小打印级别，用来控制软件内部不同层级调试需要的LOG |0: enable VLOG(0);<br>1: enable VLOG(0)-VLOG(1);<br>2: enable VLOG(0)-VLOG(2);<br>3: enable VLOG(0)-VLOG(3);<br>4: enable VLOG(0)-VLOG(4);<br>5: enable VLOG(0)-VLOG(5);<br>6: enable VLOG(0)-VLOG(6);<br>7: enable VLOG(0)-VLOG(7); | 默认为0| 
+| 6 | MLUOP_LOG_ONLY_SHOW  | 是否之展示LOG 而不生成mluop_auto_log 文件  |=ON时，表示不会生产mluop_auto_log文件;<br>=OFF时，表示会生成mluop_auto_log文件 | 默认为ON|
+| 7 | MLUOP_LOG_COLOR_PRINT | 决定打印LOG是否开启颜色字体特效  |=ON时，表示打印带颜色的字体加粗等特效;<br>=OFF时，表示关闭打印字体特效 | 默认为ON,但重定向到文件时，不会带颜色字体特效|
+| 8 | MLUOP_BUILD_ASAN_CHECK | 在编译的时候设置是否打开ASAN内存检查  |=ON时，表示编译ASAN内存检查;<br>！=ON时，表示不编译ASAN内存检查 | 1.默认不开启 <br>2.该工具仅在Ubuntu上与Debian上有效。无论环境变量如何设置，Centos上都不会编译该工具。<br>3.如果没有检测到内存问题，运行算子case时将不会输出任何内容; 若检测到内存问题，运行算子case时将输出错误内容。|
+|9|MLUOP_SET_JOB_LIMIT_CAPABILITY|设置最大JOB限制数量，默认不设置。|=1 CN_KERNEL_CLASS_UNION<br>=2 CN_KERNEL_CLASS_UNION2<br>=3 CN_KERNEL_CLASS_UNION4<br>=4 CN_KERNEL_CLASS_UNION8<br>=5 CN_KERNEL_CLASS_UNION16<br>=6 CN_KERNEL_CLASS_BLOCK不使用<br>=7 CN_KERNEL_CLASS_NONE不使用<br>|JOB_LIMIT和CLUSTER_LIMIT需要同时设置来保证合法性|
+|10|MLUOP_GTEST_CLUSTER_LIMIT_CAPABILITY|设置最大cluster限制数量，默认不设置|=1 1cluster<br>=3 2cluster<br>=7 3cluster<br>=15 4cluster<br>...<br>从右往左，每多一个连续的1表示1个cluster |JOB_LIMIT 和CLUSTER_LIMIT 需要同时设置来保证合法性<br>原理是：<br>1的二进制是0000,0001: 1号cluster可用<br>3的二进制是0000,0011: 1号和2好cluster可用<br>...<br>如果有特殊需求，如只想用2号cluster:设置为2: 0000,0010|
+|11|MLUOP_GTEST_SET_GDRAM|作用是在GDRAM前后刷NAN/INF| NAN/INF  在GDRAM前后刷NAN/INF|若不设置则根据日期，偶数天刷NAN，奇数天刷INF|
+|12|MLUOP_GTEST_UNALIGNED_ADDRESS_RANDOM|设置在GDRAM上申请的空间地址是非64 bytes对齐的，偏移量为1~63的随机值| ON/OFF  ||
+|13|MLUOP_GTEST_UNALIGNED_ADDRESS_SET|设置在GDRAM上申请的空间地址是64 bytes对齐的| = NUM ||
