@@ -97,7 +97,6 @@ usage () {
 }
 
 prepare_cntoolkit () {
-  pushd ../ > /dev/null
   python2 json_parser.py
   output='dependency.txt'
   MODULE_VERSION=""
@@ -112,7 +111,6 @@ prepare_cntoolkit () {
 
   PACKAGE_MODULE_VERS=`cat $output | awk -F ':' '{print $3}'`
   prog_log_info "PACKAGE_MODULE_VERS: $PACKAGE_MODULE_VERS"
-  popd > /dev/null
 
   PACKAGE_SERVER="http://daily.software.cambricon.com"
   PACKAGE_OS="Linux"
@@ -326,7 +324,7 @@ if [ $# != 0 ]; then
 fi
 
 script_path=`dirname $0`
-pushd $script_path/../  > /dev/null
+pushd $script_path  > /dev/null
 BUILD_VERSION=$(cat build.property|grep "version"|cut -d ':' -f2|cut -d '-' -f1|cut -d '"' -f2|cut -d '.' -f1-3)
 popd > /dev/null
 MAJOR_VERSION=$(echo ${BUILD_VERSION}|cut -d '-' -f1|cut -d '.' -f1)
