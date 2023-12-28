@@ -31,7 +31,7 @@
 </div>
 
 ## 简介
-MLU-OPS 提供基于寒武纪人工智能单元（MLU），使用 C 接口或者 Python 接口开发高性能算子的示例代码。
+MLU-OPS 提供基于寒武纪人工智能单元（MLU），使用 C 接口开发高性能算子的示例代码。
 MLU-OPS 旨在通过提供示例代码，供开发者参考使用，可用于开发自定义算子，实现对应模型的计算。
 
 MLU-OPS 提供了以下功能：
@@ -227,7 +227,7 @@ MLU-OPS 提供了以下功能：
 
   
 
-## 运行测试用例
+### 运行测试用例
 
 各算子的测试用例实现在 `mlu-ops/test/mlu_op_gtest/src/zoo/<op_name>/test_case` 目录下。可以用如下命令执行 abs 算子对应的测试：
 
@@ -236,7 +236,7 @@ mlu-ops$ cd build/test/
 test$ ./mluop_gtest --gtest_filter=*abs*
 ```
 
-## 新算子开发流程
+### 新算子开发流程
 
 详情可以参考文档 [BANGC-OPS 算子开发流程.md](docs/bangc-docs/BANGC-OPS-Operator-Development-Process.md)以及 docs 目录下的其它补充说明。
 
@@ -244,7 +244,7 @@ test$ ./mluop_gtest --gtest_filter=*abs*
 2. 在`mlu-ops/test/mlu_op_gtest/src/zoo`创建算子文件夹，添加测试代码。
 3. 在算子测试目录 `mlu-ops/test/mlu_op_gtest/src/zoo/<op_name>/` 下进一步创建子目录`test_case`，用于存放测试用例。
 
-## 常用环境变量
+### 常用环境变量
 
 简单环境变量可直接执行以下命令：
 
