@@ -85,14 +85,6 @@ MLU-OPS 提供了以下功能：
   tar -xvf Python-3.8.0.tgz
   cd Python-3.8.0
   make -j24 && make install
-  ```
-
-- 准备 BANGPy 环境
-
-  获取 BANGPy 最新版发布包：(https://cair.cambricon.com/)
-  ```sh
-  pip3.8 install bangpy-x.x.x-py3-none-any.whl
-  ```
 
 - 准备链接库环境
 
@@ -153,7 +145,7 @@ MLU-OPS 提供了以下功能：
 
   ```sh
   cd mlu-ops
-  mlu-ops$./build.sh --filter="abs;div;sqrt" # '--filter'参数后接要编译的算子，构建系统会根据'kernel_depends.toml'文件描述的依赖自动编译依赖的算子
+  mlu-ops$ ./build.sh --filter="abs;div;sqrt" # '--filter'参数后接要编译的算子，构建系统会根据'kernel_depends.toml'文件描述的依赖自动编译依赖的算子
   ```
 
   算子名指的是`mlu-ops/kernels`目录下面的文件夹名。
