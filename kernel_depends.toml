@@ -7,9 +7,7 @@
 # ##  <kernel_name> = ["op_1", "op_2"]
 
 abs = ["unary_op"]
-copy = ["tensor_stride_process"]
 div = ["binary_op"]
-expand = ["copy"]
 fill = ["tensor_stride_process"]
 log = ["unary_op"]
 psroipool = ["fill"]
