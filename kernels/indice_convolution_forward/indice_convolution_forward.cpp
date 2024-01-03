@@ -30,6 +30,7 @@
 #include "core/tensor.h"
 #include "core/type.h"
 #include "kernels/kernel.h"
+#include "kernels/utils/cnnl_helper.h"
 #include "mlu_op.h"
 
 static mluOpStatus_t foolProof(
@@ -221,8 +222,8 @@ static mluOpStatus_t mainIndiceConvolutionForward(
   mluOpTensorDescriptor_t active_indice_desc;
   mluOpTensorDescriptor_t matmul_a_desc, matmul_b_desc, matmul_c_desc;
   mluOpMatMulDescriptor_t matmul_desc;
-  mluOpTensorDescriptor_t addN_descriptors[2] = {features_out_desc,
-                                                 features_out_desc};
+  // mluOpTensorDescriptor_t addN_descriptors[2] = {features_out_desc,
+  //                                                features_out_desc};
   mluOpMatMulAlgo_t matmul_algo;
   mluOpMatMulHeuristicResult_t heuristic_result;
   CHECK_RETURN(api_name, mluOpCreateTensorDescriptor(&active_indice_desc));
@@ -335,9 +336,28 @@ static mluOpStatus_t mainIndiceConvolutionForward(
     CHECK_RETURN(api_name,
                  mluOpGetMatMulHeuristicResult(heuristic_result, matmul_algo,
                                                &tempSize_matmulExtra));
-    CHECK_RETURN(api_name, mluOpGetAddNWorkspaceSize(handle, addN_descriptors,
-                                                     2, features_out_desc,
-                                                     &tempSize_addNExtra))
+    uint32_t addn_num = 2;
+    {
+      DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
+      cnnlTensorDescriptor_t *cnnl_input_descs = (cnnlTensorDescriptor_t *)malloc(
+          sizeof(cnnlTensorDescriptor_t) * addn_num);
+      for (int i = 0; i < addn_num; i++) {
+        CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(features_out_desc, cnnl_input_descs[i]);
+      }
+      DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(features_out_desc, cnnl_output_desc);
+      CHECK_FUNC_RETURN(
+          cnnlGetAddNWorkspaceSize(cnnl_handle, cnnl_input_descs, addn_num,
+                                  cnnl_output_desc, &tempSize_addNExtra),
+          CNNL_STATUS_SUCCESS,
+          "[cnnlAddN_v2] Internal error accured in cnnlGetAddNWorkspaceSize.",
+          MLUOP_STATUS_INTERNAL_ERROR);
+      for (int i = 0; i < addn_num; i++) {
+        DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_input_descs[i]);
+      }
+      free(cnnl_input_descs);
+      DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
+      DESTROY_CNNL_HANDLE(cnnl_handle);
+    }
 
     if (is_workspace_compute) {
       workspaceSize_matmulExtra =
@@ -382,9 +402,29 @@ static mluOpStatus_t mainIndiceConvolutionForward(
           scatterResult_ptr);
       KERNEL_CALL_CHECK(api_name, "mluOpScatterNd_v2", scatter_add_status, "");
 
-      auto addN_status = mluOpAddN_v2(handle, addN_descriptors, addN_ptrs, 2,
-                                      features_out_desc, features_out,
-                                      addNExtra_ptr, tempSize_addNExtra);
+      {
+        int addn_num = 2;
+        DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
+        cnnlTensorDescriptor_t *cnnl_input_descs = (cnnlTensorDescriptor_t *)malloc(
+            sizeof(cnnlTensorDescriptor_t) * addn_num);
+        for (int i = 0; i < addn_num; i++) {
+          CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(features_out_desc, cnnl_input_descs[i]);
+        }
+        DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(features_out_desc, cnnl_output_desc);
+        
+        CHECK_FUNC_RETURN(
+            cnnlAddN_v2(cnnl_handle, cnnl_input_descs, addN_ptrs, addn_num,
+                        cnnl_output_desc, features_out, addNExtra_ptr, tempSize_addNExtra),
+            CNNL_STATUS_SUCCESS,
+            "[cnnlAddN_v2] Internal error accured in cnnlAddN_v2.",
+            MLUOP_STATUS_INTERNAL_ERROR);
+        for (int i = 0; i < addn_num; i++) {
+          DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_input_descs[i]);
+        }
+        free(cnnl_input_descs);
+        DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
+        DESTROY_CNNL_HANDLE(cnnl_handle);
+      }
     }
   }
   if (is_workspace_compute) {
