@@ -1048,7 +1048,7 @@ typedef struct cnnlTransposeStruct *mluOpTransposeDescriptor_t;
 /*! The descriptor of ::mluOpRoiAlignForward that holds parameter information.
  *
  *  You need to call ::mluOpCreateRoiAlignForwardDescriptor to create a descriptor,
- *  and call ::mluOpSetRoiAlignForwardDescriptor to set the information of
+ *  and call ::mluOpSetRoiAlignForwardDescriptor_v2 to set the information of
  *  ::mluOpRoiAlignForward operation to the descriptor. Also, you need to destroy the MLU-OPS context
  *  at the end with ::mluOpDestroyRoiAlignForwardDescriptor.
  */
@@ -2840,93 +2840,6 @@ mluOpAbs(mluOpHandle_t handle,
          const void *x,
          const mluOpTensorDescriptor_t y_desc,
          void *y);
-
-// Group:Pad
-/*!
- * @brief Uses constant mode to pad or crop the input tensor by \b padding_value. This operation is usually used in
- * ResNet and Transformer networks.
- *
- * @par Deprecated
- * - ::mluOpPad is deprecated and will be removed in the future release.
- *
- * @param[in] handle
- * Handle to a Cambricon MLU-OPS context that is used to manage MLU devices and queues in the padding operation. For
- * detailed information, see ::mluOpHandle_t.
- * @param[in] input_desc
- * The descriptor of the input tensor. For detailed information, see ::mluOpTensorDescriptor_t.
- * @param[in] input
- * Pointer to the MLU memory that stores the input tensor.
- * @param[in] paddings
- * A host pointer that holds the padding size to be added for each dimension
- * of \b input. Positive and negative padding values represent the padding size and the cropping size, respectively.
- * @param[in] padding_value
- * A host pointer that holds the constant value to be added.
- * @param[in] output_desc
- * The descriptor of the output tensor. For detailed information, see ::mluOpTensorDescriptor_t.
- * @param[out] output
- * Pointer to the MLU memory that stores the output tensor.
- *
- * @par Return
- * - ::MLUOP_STATUS_SUCCESS, ::MLUOP_STATUS_BAD_PARAM
- *
- * @par Data Type
- * - Data types of input tensor \b input, \b padding_value and output tensor \b output must be the same. The
- *  supported data types are as follows:
- *   - input tensor: uint8, int8, uint16, int16, uint32, int32, uint64, int64, bool, half, float.
- *   - paddings: int32.
- *   - padding_value: uint8, int8, uint16, int16, uint32, int32, uint64, int64, bool, half, float.
- *   - output tensor: uint8, int8, uint16, int16, uint32, int32, uint64, int64, bool, half, float.
- *
- * @par Scale Limitation
- * - Only supports padding with a constant value in \b padding_value.
- * - The input tensor and output tensor must meet the following requirements:
- *   - The number of dimensions of \b input must be less than or equal to 8.
- *   - The shape of the integer array of \b paddings is \p [n, 2]. Length of the first dimension of \b paddings is
- *   \p n, which equals to the number of dimensions of \b input. Length of the second dimension of \b paddings is 2,
- *   which means the two padding directions of before and after directions for each dimension of \b input. For each
- *   dimension \p k, \p paddings[k, 0] and \p paddings[k, 1] specify the padding size before and after the input data
- *   respectively.
- *   - ``output[k] = paddings[k, 0] + input[k] + paddings[k, 1]``. \p k represents each dimension of \b input.
- *   \p output[k] represents the length of the dimension \p k in the output tensor. \p input[k] represents the length
- *   of the dimension \p k in the input tensor. \p paddings[k, 0] and \p paddings[k, 1] represent the length to be
- *   padded before and after the dimension \p k in the input tensor respectively.
- *   - ``paddings[k, 0] and \p paddings[k, 1] >= \p -input[k]``. \p k represents each dimension of \b input.
- *   \p input[k] represents the length of the dimension \p k in the input tensor.
- *
- * @par Note
- * - None.
- *
- * @par Example
- * - The example of pad is as follows:
-   @verbatim
-    For example below, if dimensions of input == 2, then the shape of paddings should be [n, 2] == [2, 2], where n holds
-    the length of the first dimension of paddings. If paddings == [[len1, len2], [len3, len4]], then for the first
-    dimension k, paddings[k, 0] == len1 == 1, paddings[k, 1] == len2 == 1. For the second dimension k + 1, paddings[k +
-    1, 0] == len3 == -1. paddings[k + 1, 1] == len4 == 2. So the paddings is [[1, 1], [-1, 2]].
-    - len1 is the padding size to be padded before the first dimension k of the input data.
-    - len2 is the padding size to be padded after the first dimension k of the input data.
-    - len3 is the padding size to be padded before the second dimension k + 1 of the input data.
-    - len4 is the padding size to be padded after the second dimension k + 1 of the input data.
-
-    input: [[2, 4], [1, 3]]
-    paddings: [[1, 1], [-1, 2]]
-    padding_value: 0
-    output: [[0, 0, 0], [4, 0, 0], [3, 0, 0], [0, 0, 0]]
-   @endverbatim
- *
- * @par Reference
- * - https://www.tensorflow.org/api_docs/python/tf/pad
- * - https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/ops/array_ops.py
- * - https://pytorch.org/docs/stable/nn.functional.html?highlight=pad#torch.nn.functional.pad
- */
-mluOpStatus_t MLUOP_WIN_API
-mluOpPad(mluOpHandle_t handle,
-         const mluOpTensorDescriptor_t input_desc,
-         const void *input,
-         const void *paddings,
-         const void *padding_value,
-         const mluOpTensorDescriptor_t output_desc,
-         void *output);
 
 // Group:Log
 /*!
@@ -4773,7 +4686,7 @@ mluOpPsRoiPoolBackward(mluOpHandle_t handle,
  * - None.
  *
  * @par API Dependency
- * - ::mluOpSetRoiAlignForwardDescriptor or ::mluOpSetRoiAlignForwardDescriptor_v2
+ * - ::mluOpSetRoiAlignForwardDescriptor_v2
  *   should be called to initialize the descriptor after calling this function.
  *
  * @par Note
@@ -4789,65 +4702,6 @@ mluOpPsRoiPoolBackward(mluOpHandle_t handle,
 mluOpStatus_t MLUOP_WIN_API
 mluOpCreateRoiAlignForwardDescriptor(mluOpRoiAlignForwardDescriptor_t *desc);
 
-// Group:RoiAlignForward
-/*!
- * @brief Initializes the descriptor \b desc that was previously created with
- * ::mluOpCreateRoiAlignForwardDescriptor function, and sets RoiAlign information
- * to the descriptor \b desc. The information includes height \b pooled_height and
- * width \b pooled_width of RoiAlign feature map, sampling_ratio \b sampling_ratio
- * and spatial_scale \b spatial_scale for each boxes and shift mode \b aligned.
- *
- * @par Deprecated
- * - ::mluOpSetRoiAlignForwardDescriptor is deprecated and will be removed in the
- *   future. It is recommended to use ::mluOpSetRoiAlignForwardDescriptor_v2
- *   instead, which supports both maximum and average modes.
- *
- * @param[in] desc
- * The descriptor of the RoiAlign operation. For detailed information,
- * see ::mluOpRoiAlignForwardDescriptor_t.
- * @param[in] pooled_height
- * The height of output feature map.
- * @param[in] pooled_width
- * The width of output feature map.
- * @param[in] sampling_ratio
- * The number of sampling points in grid used to compute output.
- * @param[in] spatial_scale
- * The spatial scale of each ROI in output.
- * @param[in] aligned
- * A boolean value which determines whether to shift the boxes by 0.5 pixel.
- *
- * @par Return
- * - ::MLUOP_STATUS_SUCCESS, ::MLUOP_STATUS_BAD_PARAM
- *
- * @par Data Type
- * - None.
- *
- * @par Data Layout
- * - None.
- *
- * @par Scale Limitation
- * - None.
- *
- * @par API Dependency
- * - This function should be called after ::mluOpCreateRoiAlignForwardDescriptor.
- *
- * @par Note
- * - None.
- *
- * @par Example
- * - None.
- *
- * @par Reference
- * - None.
- */
-
-mluOpStatus_t MLUOP_WIN_API
-mluOpSetRoiAlignForwardDescriptor(mluOpRoiAlignForwardDescriptor_t desc,
-                                  const int pooled_height,
-                                  const int pooled_width,
-                                  const int sampling_ratio,
-                                  const float spatial_scale,
-                                  const bool aligned);
 // Group:RoiAlignForward
 /*!
  * @brief Initializes the descriptor \b desc that was previously created with
@@ -4947,100 +4801,6 @@ mluOpSetRoiAlignForwardDescriptor_v2(mluOpRoiAlignForwardDescriptor_t roialign_d
 
 mluOpStatus_t MLUOP_WIN_API
 mluOpDestroyRoiAlignForwardDescriptor(mluOpRoiAlignForwardDescriptor_t desc);
-
-// Group:RoiAlignForward
-/*!
- * @brief Computes the output feature map \b output based on the input feature
- * map \b input and bounding boxes \b boxes to perform ::mluOpRoiAlignForward.
- * To use maximum pooling mode or average pooling mode, call ::mluOpRoiAlignForward_v2.
- *
- * @par Deprecated
- * - ::mluOpRoiAlignForward is deprecated and will be removed in the future release.
- *   It is recommended to use ::mluOpRoiAlignForward_v2 instead, which supports both
- *   maximum and average modes.
- *
- * @param[in] handle
- * Handle to a a Cambricon MLU-OPS context that is used to manage MLU devices and queues in
- * ::mluOpRoiAlignForward. For detailed information, see ::mluOpHandle_t.
- * @param[in] roialign_desc
- * The descriptor of the RoiAlign operation. For detailed information,
- * see ::mluOpRoiAlignForwardDescriptor_t.
- * @param[in] input_desc
- * The descriptor of the input tensor in RoiAlign process. For detailed information,
- * see ::mluOpTensorDescriptor_t.
- * @param[in] input
- * Pointer to the MLU memory that stores the \b input tensor.
- * @param[in] boxes_desc
- * The descriptor of the tensor \b boxes, which contains dimension and layout of boxes.
- * For detailed information, see ::mluOpTensorDescriptor_t.
- * @param[in] boxes
- * Pointer to the MLU memory that stores \b boxes tensor.
- * @param[in] output_desc
- * The descriptor of \b output, which contains dimension and layout of output.
- * @param[out] output
- * Pointer to the MLU memory that stores \b output tensor.
- *
- * @par Return
- * - ::MLUOP_STATUS_SUCCESS,   ::MLUOP_STATUS_NOT_SUPPORTED,
- *   ::MLUOP_STATUS_BAD_PARAM, ::MLUOP_STATUS_EXECUTION_FAILED
- *
- * @par Data Type
- * - The data type of all tensors should be the same.
- * - The supported data types of input and output tensors are as follows:
- *   - input tensor: half, float
- *   - boxes tensor: half, float
- *   - output tensor: half, float
- *
- * @par Data Layout
- * - The supported data layouts of \b input tensor, \b boxes tensor, and \b output tensor are as follows:
- *   - input tensor: \p MLUOP_LAYOUT_NHWC
- *   - boxes tensor: \p MLUOP_LAYOUT_ARRAY, which only supports 2D tensor.
- *   - output tensor: \p MLUOP_LAYOUT_NHWC
- *
- * @par Scale Limitation
- * - The input tensor and output tensor must have four dimensions.
- * - The data type half is not recommended due to low precision.
- * - The size of the lowest dimension of input tensor and output tensor must be the same.
- * - \b boxes tensor must have two dimensions.
- * - The size of the highest dimension of output tensor and boxes tensor must be the same.
- * - The shape of \b boxes should be [boxes_num, 5].
- * - \b boxes[i] consists of [batch_id, x1, y1, x2, y2]. \p batch_id should be in the range of
- *   [0, batch_num - 1]. \p x1 and \p y1 should be greater than or equal to 0. \p x2 should be
- *   greater than \p x1. \p y2 should be greater than \p y1.
- *
- * @par API Dependency
- * - This function should be called with ::mluOpSetRoiAlignForwardDescriptor.
- *
- * @par Note
- * - None.
- *
- * @par Example
- * - The example of ::mluOpRoiAlignForward is as follows:
-     @verbatim
-     input two arrays by 1 * 1 * 1 * 1 and 1 * 5 --> input: [[[[1.0]]]]
-
-     --> boxes: [[1.0, 0.0, 0.0, 1.0, 1.0]]
-
-     param:
-            pooled_height: 1.0, pooled_width: 1.0, spatial_scale: 1.0,
-            sampling_ratio: 2, aligned: false
-
-     output array by 1 * 1 * 1 * 1 -->
-         output: [[[[1]]]]
-     @endverbatim
- *
- * @par Reference
- * - https://pytorch.org/vision/stable/ops.html#torchvision.ops.roi_align
- */
-mluOpStatus_t MLUOP_WIN_API
-mluOpRoiAlignForward(mluOpHandle_t handle,
-                     const mluOpRoiAlignForwardDescriptor_t roialign_desc,
-                     const mluOpTensorDescriptor_t input_desc,
-                     const void *input,
-                     const mluOpTensorDescriptor_t boxes_desc,
-                     const void *boxes,
-                     const mluOpTensorDescriptor_t output_desc,
-                     void *output);
 
 // Group:RoiAlignForward
 /*!
