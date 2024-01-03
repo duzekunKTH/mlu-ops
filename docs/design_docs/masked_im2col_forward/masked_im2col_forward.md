@@ -150,9 +150,9 @@ mluOpMaskedIm2colForward(mluOpHandle_t handle,
 ### 3.2 伪代码实现（可选）
 
 ```c++
-//host
-//mluOpTranspose_v2对feature进行转置
-//mluOpFill()对workspace中的data_col内存刷成0
+// host
+// mluOpTranspose_v2对feature进行转置
+// cnnlOpFill()对workspace中的data_col内存刷成0
 
 //kernel
 for (int mask_index = taskId; mask_index < mask_cnt; ++mask_index) {

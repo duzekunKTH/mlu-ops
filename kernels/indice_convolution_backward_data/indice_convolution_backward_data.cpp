@@ -649,8 +649,16 @@ mluOpStatus_t MLUOP_WIN_API mluOpIndiceConvolutionBackwardData(
                                        filters_desc->dtype, 2,
                                        sub_filter_dims));
   float fill_value = 0;
-  mluOpFill_v3(handle, MLUOP_POINTER_MODE_HOST, &fill_value, input_grad_desc,
-               input_grad);
+  DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
+  DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(input_grad_desc, cnnl_output_desc);
+  CHECK_FUNC_RETURN(
+      cnnlFill_v3(cnnl_handle, CNNL_POINTER_MODE_HOST, &fill_value,
+                  cnnl_output_desc, input_grad),
+      CNNL_STATUS_SUCCESS,
+      "[cnnlFill_v3] Internal error accured in cnnlFill_v3.",
+      MLUOP_STATUS_INTERNAL_ERROR);
+  DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
+  DESTROY_CNNL_HANDLE(cnnl_handle);
 
   void *workspace_matmul = NULL;
   char *workspace_input_grad_tmp = NULL;
@@ -747,8 +755,16 @@ mluOpStatus_t MLUOP_WIN_API mluOpIndiceConvolutionBackwardData(
       workspace_input_grad_tmp = workspace_base;
       workspace_base += input_grad_tmp_workspace_size;
     }
-    MLUOP_CHECK(mluOpFill_v3(handle, MLUOP_POINTER_MODE_HOST, &fill_value,
-                             input_grad_desc, workspace_input_grad_tmp));
+    DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
+    DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(input_grad_desc, cnnl_output_desc);
+    CHECK_FUNC_RETURN(
+        cnnlFill_v3(cnnl_handle, CNNL_POINTER_MODE_HOST, &fill_value,
+                    cnnl_output_desc, workspace_input_grad_tmp),
+        CNNL_STATUS_SUCCESS,
+        "[cnnlFill_v3] Internal error accured in cnnlFill_v3.",
+        MLUOP_STATUS_INTERNAL_ERROR);
+    DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
+    DESTROY_CNNL_HANDLE(cnnl_handle);
 
     // scatter input_grad
     uint64_t scatter_indices_offset =

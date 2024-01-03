@@ -29,6 +29,7 @@
 #include "core/tensor.h"
 #include "core/type.h"
 #include "kernels/kernel.h"
+#include "kernels/utils/cnnl_helper.h"
 
 static void policyFunc(const mluOpHandle_t handle, const int mask_cnt,
                        cnrtDim3_t *k_dim, cnrtFunctionType_t *k_type) {
@@ -226,10 +227,16 @@ mluOpStatus_t MLUOP_WIN_API mluOpMaskedCol2imForward(
   if (mluOpGetTensorElementNum(mask_h_idx_desc) == 0) {
     VLOG(5) << "[mluOpMaskedCol2imForward] Skip zero element tensor.";
     uint64_t fill_value = 0x0;
-    PARAM_CHECK(
-        "[mluOpMaskedCol2imForward]",
-        MLUOP_STATUS_SUCCESS == mluOpFill_v3(handle, MLUOP_POINTER_MODE_HOST,
-                                             &fill_value, im_desc, im));
+    DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
+    DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(im_desc, cnnl_output_desc);
+    CHECK_FUNC_RETURN(
+        cnnlFill_v3(cnnl_handle, CNNL_POINTER_MODE_HOST, &fill_value,
+                    cnnl_output_desc, im),
+        CNNL_STATUS_SUCCESS,
+        "[cnnlFill_v3] Internal error accured in cnnlFill_v3.",
+        MLUOP_STATUS_INTERNAL_ERROR);
+    DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
+    DESTROY_CNNL_HANDLE(cnnl_handle);
     return MLUOP_STATUS_SUCCESS;
   }
   if (workspace_size > 0) {
@@ -261,7 +268,7 @@ mluOpStatus_t MLUOP_WIN_API mluOpMaskedCol2imForward(
   const int mask_cnt = mask_h_idx_desc->dims[0];
   policyFunc(handle, mask_cnt, &k_dim, &k_type);
 
-  VLOG(5) << "[mluOpMaskedCol2imForward] mluOpFill_v3 start.";
+  VLOG(5) << "[mluOpMaskedCol2imForward] cnnlFill_v3 start.";
   const int im_dim = im_desc->dim;
   int NCHW2NHWC_permute[4] = {0, 2, 3, 1};
   int im_NHWC_dims[4] = {0, 0, 0, 0};
@@ -276,11 +283,17 @@ mluOpStatus_t MLUOP_WIN_API mluOpMaskedCol2imForward(
           mluOpSetTensorDescriptor(im_NHWC_desc_tmp, MLUOP_LAYOUT_ARRAY,
                                    im_desc->dtype, im_dim, im_NHWC_dims));
   uint64_t fill_value = 0x0;
-  PARAM_CHECK("[mluOpMaskedCol2imForward]",
-              MLUOP_STATUS_SUCCESS ==
-                  mluOpFill_v3(handle, MLUOP_POINTER_MODE_HOST, &fill_value,
-                               im_NHWC_desc_tmp, im_workspace));
-  VLOG(5) << "[mluOpMaskedCol2imForward] mluOpFill_v3 end.";
+  DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
+  DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(im_NHWC_desc_tmp, cnnl_output_desc);
+  CHECK_FUNC_RETURN(
+      cnnlFill_v3(cnnl_handle, CNNL_POINTER_MODE_HOST, &fill_value,
+                  cnnl_output_desc, im_workspace),
+      CNNL_STATUS_SUCCESS,
+      "[cnnlFill_v3] Internal error accured in cnnlFill_v3.",
+      MLUOP_STATUS_INTERNAL_ERROR);
+  DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
+  DESTROY_CNNL_HANDLE(cnnl_handle);
+  VLOG(5) << "[mluOpMaskedCol2imForward] cnnlFill_v3 end.";
 
   VLOG(5) << "[mluOpMaskedCol2imForward] mluOpTranspose_v2 col start.";
 

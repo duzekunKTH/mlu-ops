@@ -26,6 +26,7 @@
 #include "core/logging.h"
 #include "core/runtime/device.h"
 #include "kernels/kernel.h"
+#include "kernels/utils/cnnl_helper.h"
 
 // policy function
 static void policyFunc(const mluOpHandle_t handle, const int mask_cnt,
@@ -271,12 +272,18 @@ mluOpStatus_t MLUOP_WIN_API mluOpMaskedIm2colForward(
   const int mask_cnt = mask_h_idx_desc->dims[0];
   policyFunc(handle, mask_cnt, &k_dim, &k_type);
 
-  VLOG(5) << "[mluOpMaskedIm2colForward] mluOpFill_v3 start.";
+  VLOG(5) << "[mluOpMaskedIm2colForward] cnnlFill_v3 start.";
   uint64_t fill_value = 0x0;
-  PARAM_CHECK("[mluOpMaskedIm2colForward]",
-              MLUOP_STATUS_SUCCESS ==
-                  mluOpFill_v3(handle, MLUOP_POINTER_MODE_HOST, &fill_value,
-                               data_col_desc, data_col_workspace));
+    DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
+    DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(data_col_desc, cnnl_output_desc);
+    CHECK_FUNC_RETURN(
+        cnnlFill_v3(cnnl_handle, CNNL_POINTER_MODE_HOST, &fill_value,
+                    cnnl_output_desc, data_col_workspace),
+        CNNL_STATUS_SUCCESS,
+        "[cnnlFill_v3] Internal error accured in cnnlFill_v3.",
+        MLUOP_STATUS_INTERNAL_ERROR);
+    DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
+    DESTROY_CNNL_HANDLE(cnnl_handle);
 
   VLOG(5) << "[mluOpMaskedIm2colForward] mluOpTranspose_v2 feature start.";
 

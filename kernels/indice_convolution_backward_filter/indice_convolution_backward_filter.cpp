@@ -29,6 +29,7 @@
 #include "core/mlu_env.h"
 #include "core/tensor.h"
 #include "kernels/get_indice_pairs/get_indice_pairs_structs.h"
+#include "kernels/utils/cnnl_helper.h"
 #include "mlu_op.h"
 
 inline bool isFloatDtype(const mluOpDataType_t &dtype) {
@@ -355,10 +356,16 @@ static mluOpStatus_t internalIndiceConvBackwardFilter(
 
   // filters_grad fill for unused kernel
   if (!is_get_workspace) {
-    auto fill_status =
-        mluOpFill_v3(handle, MLUOP_POINTER_MODE_HOST, &fill_value,
-                     filters_grad_desc, filters_grad_temp);
-    KERNEL_CALL_CHECK(api_name, "mluOpFill_v3", fill_status, "");
+    DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
+    DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(filters_grad_desc, cnnl_output_desc);
+    CHECK_FUNC_RETURN(
+        cnnlFill_v3(cnnl_handle, CNNL_POINTER_MODE_HOST, &fill_value,
+                    cnnl_output_desc, filters_grad_temp),
+        CNNL_STATUS_SUCCESS,
+        "[cnnlFill_v3] Internal error accured in cnnlFill_v3.",
+        MLUOP_STATUS_INTERNAL_ERROR);
+    DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
+    DESTROY_CNNL_HANDLE(cnnl_handle);
   }
 
   int64_t in_active_num = indice_pairs_desc->dims[2];
