@@ -256,16 +256,18 @@ mluOpStatus_t MLUOP_WIN_API mluOpRoiAlignRotatedBackward(
 
   VLOG(5) << "cnnlFill_v3 start.";
   const size_t fill_value = 0x0;
-  DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
-  DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(bottom_grad_desc, cnnl_output_desc);
-  CHECK_FUNC_RETURN(
-      cnnlFill_v3(cnnl_handle, CNNL_POINTER_MODE_HOST, &fill_value,
-                  cnnl_output_desc, bottom_grad),
-      CNNL_STATUS_SUCCESS,
-      "[cnnlFill_v3] Internal error accured in cnnlFill_v3.",
-      MLUOP_STATUS_INTERNAL_ERROR);
-  DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
-  DESTROY_CNNL_HANDLE(cnnl_handle);
+  {
+    DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
+    DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(bottom_grad_desc, cnnl_output_desc);
+    CHECK_FUNC_RETURN(
+        cnnlFill_v3(cnnl_handle, CNNL_POINTER_MODE_HOST, &fill_value,
+                    cnnl_output_desc, bottom_grad),
+        CNNL_STATUS_SUCCESS,
+        "[cnnlFill_v3] Internal error accured in cnnlFill_v3.",
+        MLUOP_STATUS_INTERNAL_ERROR);
+    DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
+    DESTROY_CNNL_HANDLE(cnnl_handle);
+  }
   VLOG(5) << "cnnlFill_v3 end.";
 
   KERNEL_CHECK((KernelRoiAlignRotatedBackward(

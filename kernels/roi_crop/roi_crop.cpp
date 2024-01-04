@@ -252,16 +252,18 @@ mluOpStatus_t MLUOP_WIN_API mluOpRoiCropBackward(
           << ", " << k_dim.y << ", " << k_dim.z << "].";
   // gdram set zero
   float fill_value = 0;
-  DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
-  DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(grad_input_desc, cnnl_output_desc);
-  CHECK_FUNC_RETURN(
-      cnnlFill_v3(cnnl_handle, CNNL_POINTER_MODE_HOST, &fill_value,
-                  cnnl_output_desc, grad_input),
-      CNNL_STATUS_SUCCESS,
-      "[cnnlFill_v3] Internal error accured in cnnlFill_v3.",
-      MLUOP_STATUS_INTERNAL_ERROR);
-  DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
-  DESTROY_CNNL_HANDLE(cnnl_handle);
+  {
+    DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
+    DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(grad_input_desc, cnnl_output_desc);
+    CHECK_FUNC_RETURN(
+        cnnlFill_v3(cnnl_handle, CNNL_POINTER_MODE_HOST, &fill_value,
+                    cnnl_output_desc, grad_input),
+        CNNL_STATUS_SUCCESS,
+        "[cnnlFill_v3] Internal error accured in cnnlFill_v3.",
+        MLUOP_STATUS_INTERNAL_ERROR);
+    DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
+    DESTROY_CNNL_HANDLE(cnnl_handle);
+  }
 
   CHECK_RETURN("[mluOpRoiCropBackward]",
                KernelRoiCropBackward(k_dim, k_type, handle->queue, grad_output,

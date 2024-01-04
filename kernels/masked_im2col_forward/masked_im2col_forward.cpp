@@ -274,6 +274,7 @@ mluOpStatus_t MLUOP_WIN_API mluOpMaskedIm2colForward(
 
   VLOG(5) << "[mluOpMaskedIm2colForward] cnnlFill_v3 start.";
   uint64_t fill_value = 0x0;
+  {
     DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
     DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(data_col_desc, cnnl_output_desc);
     CHECK_FUNC_RETURN(
@@ -284,6 +285,7 @@ mluOpStatus_t MLUOP_WIN_API mluOpMaskedIm2colForward(
         MLUOP_STATUS_INTERNAL_ERROR);
     DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
     DESTROY_CNNL_HANDLE(cnnl_handle);
+  }
 
   VLOG(5) << "[mluOpMaskedIm2colForward] mluOpTranspose_v2 feature start.";
 

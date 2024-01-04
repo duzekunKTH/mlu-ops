@@ -256,16 +256,18 @@ mluOpStatus_t MLUOP_WIN_API mluOpDynamicPointToVoxelBackward(
           << ", grad_feats_element_num=" << grad_feats_element_num;
   // 1. init output
   uint64_t fill_0 = 0x0;
-  DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
-  DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(grad_feats_desc, cnnl_output_desc);
-  CHECK_FUNC_RETURN(
-      cnnlFill_v3(cnnl_handle, CNNL_POINTER_MODE_HOST, &fill_0,
-                  cnnl_output_desc, grad_feats),
-      CNNL_STATUS_SUCCESS,
-      "[cnnlFill_v3] Internal error accured in cnnlFill_v3.",
-      MLUOP_STATUS_INTERNAL_ERROR);
-  DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
-  DESTROY_CNNL_HANDLE(cnnl_handle);
+  {
+    DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
+    DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(grad_feats_desc, cnnl_output_desc);
+    CHECK_FUNC_RETURN(
+        cnnlFill_v3(cnnl_handle, CNNL_POINTER_MODE_HOST, &fill_0,
+                    cnnl_output_desc, grad_feats),
+        CNNL_STATUS_SUCCESS,
+        "[cnnlFill_v3] Internal error accured in cnnlFill_v3.",
+        MLUOP_STATUS_INTERNAL_ERROR);
+    DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
+    DESTROY_CNNL_HANDLE(cnnl_handle);
+  }
 
   cnrtDim3_t k_dim;
   cnrtFunctionType_t k_type;
@@ -281,16 +283,18 @@ mluOpStatus_t MLUOP_WIN_API mluOpDynamicPointToVoxelBackward(
                                        mluOpSetTensorDescriptor(
                                            indices_desc, MLUOP_LAYOUT_ARRAY,
                                            MLUOP_DTYPE_INT32, 2, indices_dims));
-    DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
-    DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(indices_desc, cnnl_output_desc);
-    CHECK_FUNC_RETURN(
-        cnnlFill_v3(cnnl_handle, CNNL_POINTER_MODE_HOST, &grad_feats_element_num,
-                    cnnl_output_desc, workspace),
-        CNNL_STATUS_SUCCESS,
-        "[cnnlFill_v3] Internal error accured in cnnlFill_v3.",
-        MLUOP_STATUS_INTERNAL_ERROR);
-    DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
-    DESTROY_CNNL_HANDLE(cnnl_handle);
+    {
+      DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
+      DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(indices_desc, cnnl_output_desc);
+      CHECK_FUNC_RETURN(
+          cnnlFill_v3(cnnl_handle, CNNL_POINTER_MODE_HOST, &grad_feats_element_num,
+                      cnnl_output_desc, workspace),
+          CNNL_STATUS_SUCCESS,
+          "[cnnlFill_v3] Internal error accured in cnnlFill_v3.",
+          MLUOP_STATUS_INTERNAL_ERROR);
+      DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
+      DESTROY_CNNL_HANDLE(cnnl_handle);
+    }
     // 3. get scatter indices
     CHECK_RETURN("[mluOpDynamicPointToVoxelBackward]",
                  KernelDynamicPointToVoxelBackward(

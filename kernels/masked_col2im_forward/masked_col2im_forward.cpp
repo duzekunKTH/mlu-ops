@@ -283,16 +283,18 @@ mluOpStatus_t MLUOP_WIN_API mluOpMaskedCol2imForward(
           mluOpSetTensorDescriptor(im_NHWC_desc_tmp, MLUOP_LAYOUT_ARRAY,
                                    im_desc->dtype, im_dim, im_NHWC_dims));
   uint64_t fill_value = 0x0;
-  DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
-  DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(im_NHWC_desc_tmp, cnnl_output_desc);
-  CHECK_FUNC_RETURN(
-      cnnlFill_v3(cnnl_handle, CNNL_POINTER_MODE_HOST, &fill_value,
-                  cnnl_output_desc, im_workspace),
-      CNNL_STATUS_SUCCESS,
-      "[cnnlFill_v3] Internal error accured in cnnlFill_v3.",
-      MLUOP_STATUS_INTERNAL_ERROR);
-  DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
-  DESTROY_CNNL_HANDLE(cnnl_handle);
+  {
+    DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
+    DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(im_NHWC_desc_tmp, cnnl_output_desc);
+    CHECK_FUNC_RETURN(
+        cnnlFill_v3(cnnl_handle, CNNL_POINTER_MODE_HOST, &fill_value,
+                    cnnl_output_desc, im_workspace),
+        CNNL_STATUS_SUCCESS,
+        "[cnnlFill_v3] Internal error accured in cnnlFill_v3.",
+        MLUOP_STATUS_INTERNAL_ERROR);
+    DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
+    DESTROY_CNNL_HANDLE(cnnl_handle);
+  }
   VLOG(5) << "[mluOpMaskedCol2imForward] cnnlFill_v3 end.";
 
   VLOG(5) << "[mluOpMaskedCol2imForward] mluOpTranspose_v2 col start.";

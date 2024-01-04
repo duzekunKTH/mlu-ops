@@ -395,16 +395,18 @@ static mluOpStatus_t mainIndiceConvolutionForward(
           tempSize_matmulExtra, matmul_c_desc, matmulResult_ptr);
       KERNEL_CALL_CHECK(api_name, "mluOpMatMul_v2", matmul_status, "");
 
-      DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
-      DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(features_out_desc, cnnl_output_desc);
-      CHECK_FUNC_RETURN(
-          cnnlFill_v3(cnnl_handle, CNNL_POINTER_MODE_HOST, &init_val,
-                      cnnl_output_desc, scatterResult_ptr),
-          CNNL_STATUS_SUCCESS,
-          "[cnnlFill_v3] Internal error accured in cnnlFill_v3.",
-          MLUOP_STATUS_INTERNAL_ERROR);
-      DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
-      DESTROY_CNNL_HANDLE(cnnl_handle);
+      {
+        DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
+        DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(features_out_desc, cnnl_output_desc);
+        CHECK_FUNC_RETURN(
+            cnnlFill_v3(cnnl_handle, CNNL_POINTER_MODE_HOST, &init_val,
+                        cnnl_output_desc, scatterResult_ptr),
+            CNNL_STATUS_SUCCESS,
+            "[cnnlFill_v3] Internal error accured in cnnlFill_v3.",
+            MLUOP_STATUS_INTERNAL_ERROR);
+        DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
+        DESTROY_CNNL_HANDLE(cnnl_handle);
+      }
 
       // invoke scatter_add to add intermediate result to final result:
       // [indice_num[i], co] -> [num_act_out, co]
