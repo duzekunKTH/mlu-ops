@@ -30,6 +30,7 @@
 #include "core/tensor.h"
 #include "core/type.h"
 #include "kernels/kernel.h"
+#include "kernels/utils/cnnl_helper.h"
 
 // policy function
 static void policyFuncDynamicPointToVoxelForward(const mluOpHandle_t handle,
@@ -279,15 +280,25 @@ mluOpStatus_t MLUOP_WIN_API mluOpDynamicPointToVoxelForward(
 
   // 3. reduce
   // fill -inf or zero
-  VLOG(5) << "mluopFill min value start.";
+  VLOG(5) << "cnnlFill_v3 min value start.";
   float inf_value = 0x0;
   if (reduce_type == MLUOP_REDUCE_DMAX) {
     inf_value = -INFINITY;
   }
   const float fill_value = inf_value;
-  MLUOP_CHECK(mluOpFill_v3(handle, MLUOP_POINTER_MODE_HOST, &fill_value,
-                           voxel_feats_desc, voxel_feats));
-  VLOG(5) << "mluopFill min value end.";
+  {
+    DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
+    DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(voxel_feats_desc, cnnl_output_desc);
+    CHECK_FUNC_RETURN(
+        cnnlFill_v3(cnnl_handle, CNNL_POINTER_MODE_HOST, &fill_value,
+                    cnnl_output_desc, voxel_feats),
+        CNNL_STATUS_SUCCESS,
+        "[cnnlFill_v3] Internal error accured in cnnlFill_v3.",
+        MLUOP_STATUS_INTERNAL_ERROR);
+    DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
+    DESTROY_CNNL_HANDLE(cnnl_handle);
+  }
+  VLOG(5) << "cnnlFill_v3 min value end.";
 
   VLOG(5) << api << " launch KernelDynamicPointToVoxelForward start.";
   CHECK_RETURN("[mluOpDynamicPointToVoxelForward]",

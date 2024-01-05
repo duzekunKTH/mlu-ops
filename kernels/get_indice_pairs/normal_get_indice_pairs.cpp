@@ -32,6 +32,7 @@
 #include "kernels/get_indice_pairs/get_indice_pairs_structs.h"
 #include "kernels/get_indice_pairs/normal_get_indice_pairs.h"
 #include "kernels/kernel.h"
+#include "kernels/utils/cnnl_helper.h"
 #include "mlu_op.h"
 
 static mluOpStatus_t getIndiceMaskAll(
@@ -645,10 +646,18 @@ mluOpStatus_t launchFillOp(mluOpHandle_t handle,
                                          fill_tensor_desc, MLUOP_LAYOUT_ARRAY,
                                          MLUOP_DTYPE_INT32, fill_in_dims.size(),
                                          fill_in_dims.data()));
-  INTERNAL_CHECK(interface_name,
-                 MLUOP_STATUS_SUCCESS ==
-                     mluOpFill_v3(handle, MLUOP_POINTER_MODE_HOST, &fill_value,
-                                  fill_tensor_desc, mluOp_fill_addr));
+  {
+    DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
+    DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(fill_tensor_desc, cnnl_output_desc);
+    CHECK_FUNC_RETURN(
+        cnnlFill_v3(cnnl_handle, CNNL_POINTER_MODE_HOST, &fill_value,
+                    cnnl_output_desc, mluOp_fill_addr),
+        CNNL_STATUS_SUCCESS,
+        "[cnnlFill_v3] Internal error accured in cnnlFill_v3.",
+        MLUOP_STATUS_INTERNAL_ERROR);
+    DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
+    DESTROY_CNNL_HANDLE(cnnl_handle);
+  }
   INTERNAL_CHECK(
       interface_name,
       MLUOP_STATUS_SUCCESS == mluOpDestroyTensorDescriptor(fill_tensor_desc));

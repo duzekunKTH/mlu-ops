@@ -339,7 +339,7 @@ static void spconvbpdataGencase(
  *                     V
  *           [workspace_input_grad_tmp]
  *                     |
- *                     | mluOpAddN_v2()
+ *                     | cnnlAddN_v2()
  *                     |
  *                     V
  *               [input_grad]
@@ -495,12 +495,29 @@ mluOpStatus_t MLUOP_WIN_API mluOpGetIndiceConvolutionBackwardDataWorkspaceSize(
       mluOpDataTypeBytes(input_grad_desc->dtype);
 
   // addn workspace
-  size_t addn_workspace_size = 0;
-  mluOpTensorDescriptor_t addn_desc_array[2] = {input_grad_desc,
-                                                input_grad_desc};
   uint32_t addn_num = 2;
-  MLUOP_CHECK(mluOpGetAddNWorkspaceSize(handle, addn_desc_array, addn_num,
-                                        input_grad_desc, &addn_workspace_size));
+  size_t addn_workspace_size = 0;
+  {
+    DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
+    cnnlTensorDescriptor_t *cnnl_input_descs = (cnnlTensorDescriptor_t *)malloc(
+        sizeof(cnnlTensorDescriptor_t) * addn_num);
+    for (int i = 0; i < addn_num; i++) {
+      CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(input_grad_desc, cnnl_input_descs[i]);
+    }
+    DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(input_grad_desc, cnnl_output_desc);
+    CHECK_FUNC_RETURN(
+        cnnlGetAddNWorkspaceSize(cnnl_handle, cnnl_input_descs, addn_num,
+                                cnnl_output_desc, &addn_workspace_size),
+        CNNL_STATUS_SUCCESS,
+        "[cnnlAddN_v2] Internal error accured in cnnlGetAddNWorkspaceSize.",
+        MLUOP_STATUS_INTERNAL_ERROR);
+    for (int i = 0; i < addn_num; i++) {
+      DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_input_descs[i]);
+    }
+    free(cnnl_input_descs);
+    DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
+    DESTROY_CNNL_HANDLE(cnnl_handle);
+  }
 
   *workspace_size =
       (size_t)(filter_transpose_size + transpose_workspace_size +
@@ -632,8 +649,16 @@ mluOpStatus_t MLUOP_WIN_API mluOpIndiceConvolutionBackwardData(
                                        filters_desc->dtype, 2,
                                        sub_filter_dims));
   float fill_value = 0;
-  mluOpFill_v3(handle, MLUOP_POINTER_MODE_HOST, &fill_value, input_grad_desc,
-               input_grad);
+  DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
+  DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(input_grad_desc, cnnl_output_desc);
+  CHECK_FUNC_RETURN(
+      cnnlFill_v3(cnnl_handle, CNNL_POINTER_MODE_HOST, &fill_value,
+                  cnnl_output_desc, input_grad),
+      CNNL_STATUS_SUCCESS,
+      "[cnnlFill_v3] Internal error accured in cnnlFill_v3.",
+      MLUOP_STATUS_INTERNAL_ERROR);
+  DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
+  DESTROY_CNNL_HANDLE(cnnl_handle);
 
   void *workspace_matmul = NULL;
   char *workspace_input_grad_tmp = NULL;
@@ -730,8 +755,16 @@ mluOpStatus_t MLUOP_WIN_API mluOpIndiceConvolutionBackwardData(
       workspace_input_grad_tmp = workspace_base;
       workspace_base += input_grad_tmp_workspace_size;
     }
-    MLUOP_CHECK(mluOpFill_v3(handle, MLUOP_POINTER_MODE_HOST, &fill_value,
-                             input_grad_desc, workspace_input_grad_tmp));
+    DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
+    DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(input_grad_desc, cnnl_output_desc);
+    CHECK_FUNC_RETURN(
+        cnnlFill_v3(cnnl_handle, CNNL_POINTER_MODE_HOST, &fill_value,
+                    cnnl_output_desc, workspace_input_grad_tmp),
+        CNNL_STATUS_SUCCESS,
+        "[cnnlFill_v3] Internal error accured in cnnlFill_v3.",
+        MLUOP_STATUS_INTERNAL_ERROR);
+    DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
+    DESTROY_CNNL_HANDLE(cnnl_handle);
 
     // scatter input_grad
     uint64_t scatter_indices_offset =
@@ -747,18 +780,39 @@ mluOpStatus_t MLUOP_WIN_API mluOpIndiceConvolutionBackwardData(
     if (kk_count == 0) {
       workspace_addn = workspace_base;
     }
-    mluOpTensorDescriptor_t addn_desc_array[2] = {input_grad_desc,
-                                                  input_grad_desc};
     void *addn_array[2] = {reinterpret_cast<void *>(workspace_input_grad_tmp),
                            input_grad};
     size_t addn_workspace_size = 0;
     uint32_t addn_num = 2;
-    MLUOP_CHECK(mluOpGetAddNWorkspaceSize(handle, addn_desc_array, addn_num,
-                                          input_grad_desc,
-                                          &addn_workspace_size));
-    MLUOP_CHECK(mluOpAddN_v2(handle, addn_desc_array, addn_array, 2,
-                             input_grad_desc, input_grad, workspace_addn,
-                             addn_workspace_size));
+
+    {
+      DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
+      cnnlTensorDescriptor_t *cnnl_input_descs = (cnnlTensorDescriptor_t *)malloc(
+          sizeof(cnnlTensorDescriptor_t) * addn_num);
+      for (int i = 0; i < addn_num; i++) {
+        CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(input_grad_desc, cnnl_input_descs[i]);
+      }
+      DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(input_grad_desc, cnnl_output_desc);
+      CHECK_FUNC_RETURN(
+          cnnlGetAddNWorkspaceSize(cnnl_handle, cnnl_input_descs, addn_num,
+                                  cnnl_output_desc, &addn_workspace_size),
+          CNNL_STATUS_SUCCESS,
+          "[cnnlAddN_v2] Internal error accured in cnnlGetAddNWorkspaceSize.",
+          MLUOP_STATUS_INTERNAL_ERROR);
+      
+      CHECK_FUNC_RETURN(
+          cnnlAddN_v2(cnnl_handle, cnnl_input_descs, addn_array, addn_num,
+                      cnnl_output_desc, input_grad, workspace_addn, addn_workspace_size),
+          CNNL_STATUS_SUCCESS,
+          "[cnnlAddN_v2] Internal error accured in cnnlAddN_v2.",
+          MLUOP_STATUS_INTERNAL_ERROR);
+      for (int i = 0; i < addn_num; i++) {
+        DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_input_descs[i]);
+      }
+      free(cnnl_input_descs);
+      DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
+      DESTROY_CNNL_HANDLE(cnnl_handle);
+    }
 
     MLUOP_CHECK(mluOpDestroyTensorDescriptor(input_grad_condence_desc));
     MLUOP_CHECK(mluOpDestroyTensorDescriptor(gather_indices_desc));

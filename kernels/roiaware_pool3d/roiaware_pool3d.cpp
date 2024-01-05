@@ -30,6 +30,7 @@
 #include "core/runtime/device.h"
 #include "core/tensor.h"
 #include "core/type.h"
+#include "kernels/utils/cnnl_helper.h"
 
 #define THRESHOLD_OF_BOXES_NUM_AND_CHANNELS 65536
 #define THRESHOLD_OF_MAX_PTS_EACH_VOXEL_FLOAT_FORWARD 2976
@@ -393,19 +394,47 @@ mluOpStatus_t MLUOP_WIN_API mluOpRoiawarePool3dForward(
   MLUOP_CHECK(mluOpDestroyTensorDescriptor(pts_feature_desc_tmp));
   VLOG(5) << "[mluOpRoiawarePool3dForward] mluOpTranspose pts_feature end.";
 
-  VLOG(5) << "[mluOpRoiawarePool3dForward] mluOpFill_v3 host pointer start.";
+  VLOG(5) << "[mluOpRoiawarePool3dForward] cnnlFill_v3 host pointer start.";
   int argmax_initial_value = (pool_method == 0) ? -1 : 0;
-  MLUOP_CHECK(mluOpFill_v3(handle, MLUOP_POINTER_MODE_HOST,
-                           &argmax_initial_value, argmax_desc, argmax));
+  {
+    DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
+    DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(argmax_desc, cnnl_output_desc);
+    CHECK_FUNC_RETURN(
+        cnnlFill_v3(cnnl_handle, CNNL_POINTER_MODE_HOST, &argmax_initial_value,
+                    cnnl_output_desc, argmax),
+        CNNL_STATUS_SUCCESS,
+        "[cnnlFill_v3] Internal error accured in cnnlFill_v3.",
+        MLUOP_STATUS_INTERNAL_ERROR);
+    DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
+    DESTROY_CNNL_HANDLE(cnnl_handle);
+  }
   int pts_idx_initial_value = 0;
-  MLUOP_CHECK(mluOpFill_v3(handle, MLUOP_POINTER_MODE_HOST,
-                           &pts_idx_initial_value, pts_idx_of_voxels_desc,
-                           pts_idx_of_voxels));
+  {
+    DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
+    DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(pts_idx_of_voxels_desc, cnnl_output_desc);
+    CHECK_FUNC_RETURN(
+        cnnlFill_v3(cnnl_handle, CNNL_POINTER_MODE_HOST, &pts_idx_initial_value,
+                    cnnl_output_desc, pts_idx_of_voxels),
+        CNNL_STATUS_SUCCESS,
+        "[cnnlFill_v3] Internal error accured in cnnlFill_v3.",
+        MLUOP_STATUS_INTERNAL_ERROR);
+    DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
+    DESTROY_CNNL_HANDLE(cnnl_handle);
+  }
   int pooled_features_initial_value = 0;
-  MLUOP_CHECK(mluOpFill_v3(handle, MLUOP_POINTER_MODE_HOST,
-                           &pooled_features_initial_value, pooled_features_desc,
-                           pooled_features));
-  VLOG(5) << "[mluOpRoiawarePool3dForward] mluOpFill host pointer end.";
+  {
+    DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
+    DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(pooled_features_desc, cnnl_output_desc);
+    CHECK_FUNC_RETURN(
+        cnnlFill_v3(cnnl_handle, CNNL_POINTER_MODE_HOST, &pooled_features_initial_value,
+                    cnnl_output_desc, pooled_features),
+        CNNL_STATUS_SUCCESS,
+        "[cnnlFill_v3] Internal error accured in cnnlFill_v3.",
+        MLUOP_STATUS_INTERNAL_ERROR);
+    DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
+    DESTROY_CNNL_HANDLE(cnnl_handle);
+  }
+  VLOG(5) << "[mluOpRoiawarePool3dForward] cnnlFill_v3 host pointer end.";
 
   cnrtDim3_t k_dim;
   cnrtFunctionType_t k_type;
@@ -612,8 +641,18 @@ mluOpStatus_t MLUOP_WIN_API mluOpRoiawarePool3dBackward(
   // generate mluOpRoiawarePool3dBackward prototxt end!
 
   int grad_in_initial_value = 0;
-  MLUOP_CHECK(mluOpFill_v3(handle, MLUOP_POINTER_MODE_HOST,
-                           &grad_in_initial_value, grad_in_desc, grad_in));
+  {
+    DEFINE_CREATE_AND_SET_CNNL_HANDLE(handle, cnnl_handle);
+    DEFINE_CREATE_AND_SET_CNNL_TENSOR_DESCRIPTOR(grad_in_desc, cnnl_output_desc);
+    CHECK_FUNC_RETURN(
+        cnnlFill_v3(cnnl_handle, CNNL_POINTER_MODE_HOST, &grad_in_initial_value,
+                    cnnl_output_desc, grad_in),
+        CNNL_STATUS_SUCCESS,
+        "[cnnlFill_v3] Internal error accured in cnnlFill_v3.",
+        MLUOP_STATUS_INTERNAL_ERROR);
+    DESTROY_CNNL_TENSOR_DESCRIPTOR(cnnl_output_desc);
+    DESTROY_CNNL_HANDLE(cnnl_handle);
+  }
   VLOG(5)
       << "[mluOpRoiawarePool3dBackward] Initialize output space successfully.";
 
