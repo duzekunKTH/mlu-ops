@@ -386,4 +386,19 @@ __mlu_func__ void gatherAsync(void* dst, void* src, unsigned int* offset,
   __mluop_gather_async<T>((T*)dst, (T*)src, offset, (uint8_t*)mask,
                           transfer_size, dir, dst_stride, transfer_num);
 }
+
+__mlu_func__ void gatherAsyncLLC(void *dst,
+    const void *src,
+    const uint32_t *offset,
+    const void *mask,
+    unsigned int transfer_size,
+    unsigned int dst_stride,
+    unsigned int transfer_num) {
+  __asm__ volatile(
+        "gather.vector.mask.async.nram.gdram.nram.nram.scmnormal.u32 [%[dst]], [%[src]], [%[offset]], \
+        [%[mask]], %[transfer_size], %[transfer_num], %[dst_stride];\n\t" ::[dst] "r"(dst),
+        [ src ] "r"(src), [ offset ] "r"(offset), [ mask ] "r"(mask),
+        [ transfer_size ] "r"(transfer_size), [ transfer_num ] "r"(transfer_num),
+        [ dst_stride ] "r"(dst_stride));
+}
 #endif
