@@ -237,10 +237,10 @@ __mlu_func__ void backwardStageTwoLoop(
                        bit_cond_reverse_nram + j * bit_cond_stride,
                        channels * sizeof(T), NRAM2NRAM, channels * sizeof(T),
                        nq_nl_np);
-        gatherAsync<T>(
+        gatherAsyncLLC(
             v_ping, data_value_gdram, (unsigned int*)offset_nram + j * nq_nl_np,
             bit_cond_nram + j * bit_cond_stride, channels * sizeof(T),
-            GDRAM2NRAM, channels * sizeof(T), nq_nl_np);
+            channels * sizeof(T), nq_nl_np);
       }
 
       if (j == 0) {
