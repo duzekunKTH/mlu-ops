@@ -26,8 +26,9 @@
 
 #include "core/logging.h"
 
-#if (__BANG_ARCH__ >= 592)
+// #if (__BANG_ARCH__ >= 592)
 
+#pragma bang walign(64)
 #define MAX_MEMCPY_SEGNUM (65536)
 #define NRAM_REMAIN_SIZE (48 * 1024)
 #define SRAM_REMAIN_SIZE (32 * 1024)
@@ -38,6 +39,8 @@
 __nram__ int8_t nram_buffer[NRAM_AVALIABLE_SIZE];
 __mlu_shared__ int8_t sram_buffer[SRAM_AVALIABLE_SIZE];
 __wram__ int8_t wram_buffer[WRAM_AVALIABLE_SIZE];
+
+__nram__ int8_t testcount[1];
 
 __mlu_func__ void loadNram2Gpr(int32_t& v1, int32_t& v2, int32_t& v3,
                                int32_t& v4, const int32_t* p1,
@@ -181,6 +184,9 @@ __mlu_func__ void backwardStageTwoLoop(
     int32_t nq_nl_np_c = deal_n * num_levels_points * channels;
     int32_t nq_nl_np = deal_n * num_levels_points;
     int32_t nq_nl_np_4 = 4 * deal_n * num_levels_points;
+    // if (taskId == 0 && i == 0) {
+    //   printf("nq_nl_np_c num %d, byte %lu\n", nq_nl_np_c, nq_nl_np_c * sizeof(T));
+    // }
 
     __memcpy_async(grad_output_nram,
                    grad_output_gdram + i * max_deal_n * output_stride_2,
@@ -237,6 +243,7 @@ __mlu_func__ void backwardStageTwoLoop(
                        bit_cond_reverse_nram + j * bit_cond_stride,
                        channels * sizeof(T), NRAM2NRAM, channels * sizeof(T),
                        nq_nl_np);
+        // value <= GDRAM (qlpc)
         gatherAsyncLLC(
             v_ping, data_value_gdram, (unsigned int*)offset_nram + j * nq_nl_np,
             bit_cond_nram + j * bit_cond_stride, channels * sizeof(T),
@@ -249,26 +256,102 @@ __mlu_func__ void backwardStageTwoLoop(
                        NRAM2NRAM, channels * sizeof(T), num_levels_points - 1,
                        num_levels_points * channels * sizeof(T), deal_n - 1, 0,
                        num_levels_points - 1, channels * sizeof(T), deal_n - 1);
+        // grad_out (qlpc)
         gatherAsync<T>(buffer, zeros_nram, (unsigned int*)offset_zero_nram_stg2,
                        bit_cond_reverse_nram + 4 * bit_cond_stride,
                        channels * sizeof(T), NRAM2NRAM, channels * sizeof(T),
                        nq_nl_np);
         __bang_write_value(value_wp, nq_nl_np_c, (T)0);  // clear value*wp
-        __sync_move();
-        // (n, nl, np, c) => (c, n, nl, np)
-        __bang_transpose(v_pong, buffer, nq_nl_np, channels);
+        // ones (co=c,1,1,1) for wram filter wram filter , ci * byte should keep 64B-align on wram.
+        // 32 * 64 / 4 = 512 -> 2KB
+        __bang_write_value(v_pong, PAD_UP(channels, 64) * WRAM_ALIGN_SIZE / (int)sizeof(T), (T)1);
         __sync_compute();
-        // (c, n, nl, np) * (n, nl, np)
-        __bang_cycle_mul(inter_grad, v_pong, weight_attn_nram, nq_nl_np_c,
-                         nq_nl_np);
-        __memcpy_async(wram_buffer, v_pong, buffer_size_pad, NRAM2WRAM);
+        // grad_out => wram (qlpc)
+        __memcpy_async(wram_buffer, buffer, buffer_size_pad, NRAM2WRAM);
+        // ones => wram (c,1,1,16)
+        // __memcpy_async(wram_buffer + buffer_size_pad / 64, v_pong, WRAM_ALIGN_SIZE, NRAM2WRAM,
+        //                /*dst_stride=*/ WRAM_AVALIABLE_SIZE / 64,
+        //                /*src_stride=*/ WRAM_ALIGN_SIZE, channels - 1);
+        __memcpy_async(wram_buffer + buffer_size_pad / 64, v_pong, PAD_UP(channels, 64) * WRAM_ALIGN_SIZE, NRAM2WRAM);
+        __sync_move();
+        // inter_grad (qlpc) <= grad_out (qlpc) * weight_attn (qlp)
+        // if (*testcount == 1) {
+        //   printf("buffer %f\n", (float)(buffer[0]));
+        // }
+        expandChannelMul(inter_grad, buffer, weight_attn_nram,
+                         wram_buffer + buffer_size_pad / 64,
+                         nq_nl_np, channels);
+        // if (*testcount == 1) {
+        //   printf("inter_grad %f\n", (float)(inter_grad[0]));
+        //   *testcount = 0;
+        // }
+        __sync_compute();
       }
 
       if (j == 4) {
+        // grad_out <= WRAM (qlpc)
         __memcpy_async(v_ping, wram_buffer, buffer_size_pad, WRAM2NRAM);
       }
 
       if (j > 0) {
+
+        // ones (co=c,1,1,1) for wram filter wram filter , ci * byte should keep 64B-align on wram.
+        // 32 * 64 / 4 = 512 -> 2KB
+        __bang_write_value(buffer, PAD_UP(channels, 64) * WRAM_ALIGN_SIZE / (int)sizeof(T), (T)1);
+        __sync_compute();
+        // ones => wram (c,1,1,16)
+        // __memcpy_async(wram_buffer + buffer_size_pad / 64, buffer, WRAM_ALIGN_SIZE, NRAM2WRAM,
+                      //  /*dst_stride=*/ WRAM_AVALIABLE_SIZE / 64,
+                      //  /*src_stride=*/ WRAM_ALIGN_SIZE, channels - 1);
+        __memcpy_async(wram_buffer + buffer_size_pad / 64, buffer, PAD_UP(channels, 64) * WRAM_ALIGN_SIZE, NRAM2WRAM);
+        __sync_move();
+        // wpc (qlpc) <= tmp_wp (1,qlp,1,1) x ones (c,1,1,1)
+        // if (*testcount == 1) {
+        //   printf("tmp_wp %f\n", (float)(tmp_wp[0]));
+        //   printf("buffer %f\n", (float)(buffer[0]));
+        // }
+        __bang_conv(buffer, tmp_wp, (T *)(wram_buffer + buffer_size_pad / 64),
+                    1, 1, 1, 1, 1, 1, 1, channels);
+        __sync_compute();
+        // if (*testcount == 1) {
+        //   printf("buffer-wpc %f\n", (float)(buffer[0]));
+        //   *testcount = 0;
+        // }
+        __sync_compute();
+        // wpc (qlpc) => WRAM
+        __memcpy_async(wram_buffer + buffer_size_pad / 64 + WRAM_ALIGN_SIZE * PAD_UP(nq_nl_np, 64) / 64
+                                   + (j - 1) * buffer_size_pad / 64,
+                       buffer,
+                       nq_nl_np_c * sizeof(T), NRAM2WRAM);
+        // value_wp (qlpc) <= value (qlpc) * wpc (qlpc) + value_wp (qlpc)
+        __bang_fusion(FUSION_FSM, value_wp, v_pong, buffer, value_wp, nq_nl_np_c,
+                      nq_nl_np_c);
+        // tmp_c (qlpc) <= inter_grad (qlpc) * value (qlpc)
+        __bang_mul(v_pong, v_pong, inter_grad, nq_nl_np_c);
+        __sync_compute();
+        // tmp_c (qlpc) => WRAM, qlp should expand to 64(LT)-align
+        __memcpy_async(wram_buffer + buffer_size_pad / 64, v_pong,
+                       PAD_UP(nq_nl_np, 64) * channels * sizeof(T), NRAM2WRAM);
+        __sync_move();
+        __bang_write_value(buffer, channels * WRAM_ALIGN_SIZE / (int)sizeof(T), (T)1);
+        __sync_compute();
+        // sumpool
+        // tmp_d (qlp) <= ones(1,1,1,c) x tmp_c (qlp,1,1,c)
+        __bang_conv(v_pong, buffer, (T *)(wram_buffer + buffer_size_pad / 64),
+                    channels, 1, 1, 1, 1, 1, 1, nq_nl_np);
+        __bang_float2int32((int32_t*)buffer, cond_nram + (j - 1) * nq_nl_np,
+                           nq_nl_np, 0);
+        __bang_mul_scalar((int32_t*)buffer, (int32_t*)buffer,
+                          (int32_t)0xffffffff, nq_nl_np);
+        __bang_band((int8_t*)v_pong, (int8_t*)v_pong, (int8_t*)buffer,
+                    nq_nl_np * sizeof(T));
+        __sync_compute();
+        // grad_wp_sram
+        __memcpy_async(grad_wp_sram + sram_src_offset +
+                           (j - 1) * total_deal_n * num_levels_points,
+                       v_pong, nq_nl_np * sizeof(T), NRAM2SRAM);
+
+        /*
         // (n, nl, np, c) => (c, n, nl, np)
         __bang_transpose(buffer, v_pong, nq_nl_np, channels);
         // (c, n, nl, np) * (n, nl, np)
@@ -289,6 +372,7 @@ __mlu_func__ void backwardStageTwoLoop(
         __memcpy_async(grad_wp_sram + sram_src_offset +
                            (j - 1) * total_deal_n * num_levels_points,
                        buffer, nq_nl_np * sizeof(T), NRAM2SRAM);
+        */
       }
 
       T* tmp = v_ping;
@@ -300,9 +384,22 @@ __mlu_func__ void backwardStageTwoLoop(
 
     // compute grad_attn_weight
     T* grad_output_bd = v_pong;
+    // grad_attn_wc (qlpc) <= grad_out * value_wp
     __bang_mul(v_ping, value_wp, grad_output_bd, nq_nl_np_c);
-    // (c, nq, nl, np) => (nq, nl, np)
-    __bang_sumpool(buffer, v_ping, nq_nl_np, channels, 1, channels, 1, 1, 1);
+    __sync_compute();
+    // tmp_c (qlpc) => WRAM, qlp should expand to 64(LT)-align
+    __memcpy_async(wram_buffer + buffer_size_pad / 64, v_ping,
+                   PAD_UP(nq_nl_np, 64) * channels * sizeof(T), NRAM2WRAM);
+    __sync_move();
+    // ones(1,1,1,c) => NRAM(v_ping)
+    __bang_write_value(v_ping, channels * WRAM_ALIGN_SIZE / (int)sizeof(T), (T)1);
+    __sync_compute();
+    // grad_attn_w (qlp) <= ones(1,1,1,c) x grad_attn_w_c (qlp,1,1,c)
+    __bang_conv(buffer, v_ping, (T *)(wram_buffer + buffer_size_pad / 64),
+                channels, 1, 1, 1, 1, 1, 1, nq_nl_np);
+    
+    // // (c, nq, nl, np) => (nq, nl, np)
+    // __bang_sumpool(buffer, v_ping, nq_nl_np, channels, 1, channels, 1, 1, 1);
     __memcpy(grad_attn_weight_gdram + i * max_deal_n * input_stride_3, buffer,
              num_levels_points * sizeof(T), NRAM2GDRAM,
              input_stride_3 * sizeof(T), num_levels_points * sizeof(T),
@@ -313,12 +410,18 @@ __mlu_func__ void backwardStageTwoLoop(
     int32_t neighbor_order[4] = {1, 3, 0, 2};
     for (int k = 0; k < 4; k++) {
       int neighbor_idx = neighbor_order[k];
-      T* grad_value_tmp = k < 3 ? buffer : inter_grad;
+      //T* grad_value_tmp = k < 3 ? buffer : inter_grad;
+      __memcpy(grad_value_buffer + k * buffer_data_num,
+               wram_buffer + buffer_size_pad / 64 + WRAM_ALIGN_SIZE * PAD_UP(nq_nl_np, 64) / 64
+                                   + neighbor_idx * buffer_size_pad / 64,
+               nq_nl_np_c * sizeof(T), WRAM2NRAM);
+      /*
       __bang_cycle_mul(grad_value_tmp, inter_grad,
                        weight_polation_nram + neighbor_idx * nq_nl_np,
                        nq_nl_np_c, nq_nl_np);
       __bang_transpose(grad_value_buffer + k * buffer_data_num, grad_value_tmp,
                        channels, nq_nl_np);
+      */
     }
 
     // store all valid point
@@ -444,7 +547,7 @@ __mlu_func__ void backwardStageThreeLoop(
   }
 }
 
-#endif
+// #endif
 
 __mlu_global__ void MLUUnion1KernelMsDeformAttnBackwardFastKernel(
     const float* data_value, const int32_t* spatial_shapes,
@@ -454,7 +557,8 @@ __mlu_global__ void MLUUnion1KernelMsDeformAttnBackwardFastKernel(
     const int32_t channels, const int32_t num_levels, const int32_t num_query,
     const int32_t num_points, float* grad_value, float* grad_sampling_loc,
     float* grad_attn_weight) {
-#if (__BANG_ARCH__ >= 592)
+// #if (__BANG_ARCH__ >= 592)
+  *testcount = 1;
   using T = float;
   const int32_t num_keys = spatial_size;
   const int32_t input_stride_4 =
@@ -605,7 +709,7 @@ __mlu_global__ void MLUUnion1KernelMsDeformAttnBackwardFastKernel(
           num_levels, num_points);
     }
   }
-#endif
+// #endif
 }
 
 mluOpStatus_t MLUOP_WIN_API KernelMsDeformAttnBackwardFast(

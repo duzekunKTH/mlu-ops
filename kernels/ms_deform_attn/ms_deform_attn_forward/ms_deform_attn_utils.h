@@ -377,14 +377,15 @@ __mlu_func__ void stageOneLoop(
 }
 #endif
 
-#if (__BANG_ARCH__ >= 592)
 template <typename T>
 __mlu_func__ void gatherAsync(void* dst, void* src, unsigned int* offset,
                               void* mask, int transfer_size,
                               mluMemcpyDirection_t dir, int dst_stride,
                               int transfer_num) {
+#if (__BANG_ARCH__ >= 592)
   __mluop_gather_async<T>((T*)dst, (T*)src, offset, (uint8_t*)mask,
                           transfer_size, dir, dst_stride, transfer_num);
+#endif
 }
 
 __mlu_func__ void gatherAsyncLLC(void *dst,
@@ -394,11 +395,25 @@ __mlu_func__ void gatherAsyncLLC(void *dst,
     unsigned int transfer_size,
     unsigned int dst_stride,
     unsigned int transfer_num) {
+#if (__BANG_ARCH__ >= 592)
   __asm__ volatile(
         "gather.vector.mask.async.nram.gdram.nram.nram.scmnormal.u32 [%[dst]], [%[src]], [%[offset]], \
         [%[mask]], %[transfer_size], %[transfer_num], %[dst_stride];\n\t" ::[dst] "r"(dst),
         [ src ] "r"(src), [ offset ] "r"(offset), [ mask ] "r"(mask),
         [ transfer_size ] "r"(transfer_size), [ transfer_num ] "r"(transfer_num),
         [ dst_stride ] "r"(dst_stride));
-}
 #endif
+}
+
+__mlu_func__ void expandChannelMul(void *dst,
+    const void *src_big,
+    const void *src_small,
+    const void *expand_chn_mask,
+    uint32_t point_num,
+    uint32_t channels) {
+  __asm__ volatile(
+          "conv.nram.f32.f32.f32 [%[dst]], [%[src]], [%[kernel]], %[ci], %[hi], %[wi], %[kh], %[kw], %[sw], %[sh], %[co], .mul.partial.rn([%[part]]);\n\t"
+          ::[dst] "r"(dst), [src] "r"(src_small), [kernel] "r"(expand_chn_mask),
+          [ci] "i"(1), [hi] "r"(point_num), [wi] "i"(1),
+          [kh] "i"(1), [kw] "i"(1), [sw] "i"(1), [sh] "i"(1), [co] "r"(channels), [part] "r"(src_big));
+}
