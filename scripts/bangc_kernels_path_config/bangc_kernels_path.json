@@ -25,9 +25,9 @@
   "operators": [
     {
       "name": "mluAdamW",
-      "header": "kernels/adam_w/adam_w_lite.h",
+      "header": "kernels_light/adam_w_light/adam_w_lite.h",
       "sources": [
-          "kernels/adam_w/adam_w_lite.h",
+          "kernels_light/adam_w_light/adam_w_lite.h",
           "kernels/adam_w/adam_w_union1.mluh",
           "kernels/adam_w/adam_w_lite_union1.mlu"
       ]

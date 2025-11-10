@@ -95,7 +95,11 @@ if (NOT EXISTS ${PROTO_FILES})
 endif()
 
 execute_process(
-  COMMAND python3 "merge_proto_files.py"
+  COMMAND git submodule update --remote
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
+execute_process(
+  COMMAND bash "build.sh"
   WORKING_DIRECTORY ${PROTO_PATH}
 )
 
