@@ -225,9 +225,6 @@ endif()
 set(LINK_FLAGS "-Wl,--version-script=${CMAKE_BINARY_DIR}/${MLUOP_SYMBOL_VIS_FILE}")
 message(STATUS "LINK_FLAGS:${LINK_FLAGS}")
 add_library(mluopscore STATIC ${core_src_files})
-# target_include_directories(mluopscore PUBLIC
-#     ${CMAKE_CURRENT_SOURCE_DIR}/kernels_light
-# )
 
 target_link_libraries(mluopscore cnnl cnrt cndrv)
 if (TARGET fmt::fmt-header-only)
