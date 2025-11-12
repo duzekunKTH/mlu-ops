@@ -20,7 +20,7 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *************************************************************************/
-#include "adam_w_lite.h"
+#include "adam_w_light.h"
 #include "kernels/adam_w/adam_w_device.mluh"
 #include "kernels/adam_w/adam_w_device_remove_nan.mluh"
 
